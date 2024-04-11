@@ -51,31 +51,33 @@ def read_Biofuel_data(State_names):
     # Loops of Biofuel csv files and compiles
     # -------------------------------------------
 
-    BioFuel_file_names = ['../Data_input/State_Biomass_Wood_Electric.csv',
-        '../Data_input/State_Biomass_Wood_Industrial.csv',
-        '../Data_input/State_Biomass_Wood_Residential.csv',
-        '../Data_input/State_Biomass_Wood_Commercial.csv',
-        '../Data_input/State_Biofuel_Ethanol_Transportation.csv',
-        '../Data_input/State_Biofuel_Ethanol_Commercial.csv',
-        '../Data_input/State_Biofuel_Ethanol_Industrial.csv',
-        '../Data_input/State_Biofuel_Biodiesel_Transportation.csv']
-
+    BioFuel_wood_file_names = ['../Data_input/State_Biomass_Wood_Electric.csv',
+                          '../Data_input/State_Biomass_Wood_Industrial.csv',
+                          '../Data_input/State_Biomass_Wood_Residential.csv',
+                          '../Data_input/State_Biomass_Wood_Commercial.csv']
+    
+    BioFuel_ethanol_file_names = ['../Data_input/State_Biofuel_Ethanol_Transportation.csv',
+                          '../Data_input/State_Biofuel_Ethanol_Commercial.csv',
+                          '../Data_input/State_Biofuel_Ethanol_Industrial.csv']
+    
+    BioFuel_biodiesal_file_names = ['../Data_input/State_Biofuel_Biodiesel_Transportation.csv']
+    
     # --- Biofuel wood --- 
     BioFuel_all_wood = np.zeros((4,6,51))
     for i in range(4):
-        BioFuel_all_wood[i,:,:] = read_EPA_data(BioFuel_file_names[i],State_names) * 12./44. # CO2 -> C
+        BioFuel_all_wood[i,:,:] = read_EPA_data(BioFuel_wood_file_names[i],State_names) * 12./44. # CO2 -> C
     BioFuel_all_wood_total = np.sum(BioFuel_all_wood,0)
 
     # --- Biofuel ethanol ---
     BioFuel_all_ethanol = np.zeros((3,6,51))
     for i in range(3):
-        BioFuel_all_ethanol[i,:,:] = read_EPA_data(BioFuel_file_names[i],State_names) * 12./44. # CO2 -> C
+        BioFuel_all_ethanol[i,:,:] = read_EPA_data(BioFuel_ethanol_file_names[i],State_names) * 12./44. # CO2 -> C
     BioFuel_all_ethanol_total = np.sum(BioFuel_all_ethanol,0)
 
     # --- Biodiesal ---
     BioFuel_all_biodiesal= np.zeros((1,6,51))
     for i in range(1):
-        BioFuel_all_biodiesal[i,:,:] = read_EPA_data(BioFuel_file_names[i],State_names) * 12./44. # CO2 -> C
+        BioFuel_all_biodiesal[i,:,:] = read_EPA_data(BioFuel_biodiesal_file_names[i],State_names) * 12./44. # CO2 -> C
     BioFuel_all_biodiesal_total = np.sum(BioFuel_all_biodiesal,0)
 
     return BioFuel_all_wood_total, BioFuel_all_ethanol_total, BioFuel_all_biodiesal_total
@@ -149,7 +151,7 @@ def read_crop_yield_data(file_path, State_names):
     # respiration [ton C of CO2] -> convert to TgC
     State_yield_TgC = State_yield * 1e-6
 
-    return State_yield_TgC
+    return State_yield_TgC * (-1.) # Removed from atmosphere
 
 # ========
 
@@ -277,13 +279,35 @@ def read_forest_harvest_data(filename,State_codes):
         if code in statecd:
             state_removals[i] = removals[statecd.index(code)]
 
-    return state_removals
+    return state_removals * (-1.) # Removed from atmosphere
+
+# ========
+
+def read_forest_inventory_data(filename,State_codes):
+    # Load data into a DataFrame using pandas                                                               
+    df = pd.read_csv(filename)
+    # Calculate state totals using groupby and sum                                                          
+    state_totals = df.groupby(['statecd', 'year']).sum()
+    # Find years
+    years = df['year'].unique()
+    
+    TotalCflux = np.zeros((6,51))
+    for i, code in enumerate(State_codes):
+        for j, year in enumerate(years):
+            filtered_data = state_totals.loc[(state_totals.index.get_level_values('statecd') == code) & (state_totals.index.get_level_values('year') == year), 'Total C flux'].values
+            if len(filtered_data) > 0:
+                TotalCflux[j, i] = filtered_data[0]
+
+
+    return TotalCflux
+
 
 # ========
 
 def create_dataframe( State_codes_in, State_abbrev_in, State_names_in, BioFuel_all_wood_total_in, BioFuel_all_ethanol_total_in,
                       BioFuel_all_biodiesal_total_in, Landfill_all_data_C_all_in, Incineration_data_in, FF_IPPU_data_in,
-                      State_yield_TgC_2015to2020_in, State_livestock_TgC_in, state_Human_Respiration_allyear_in, forest_harvest_removals_in):
+                      State_yield_TgC_2015to2020_in, State_livestock_TgC_in, state_Human_Respiration_allyear_in, forest_harvest_removals_in,
+                      Forest_inventory_in):
         
     # Create dataframe with all the data
     data_dict = {
@@ -299,7 +323,8 @@ def create_dataframe( State_codes_in, State_abbrev_in, State_names_in, BioFuel_a
         'Crop yield': State_yield_TgC_2015to2020_in,
         'Livestock Respiration': State_livestock_TgC_in,
         'Human Respiration': state_Human_Respiration_allyear_in,
-        'Forest Harvest': forest_harvest_removals_in
+        'Forest Harvest': forest_harvest_removals_in,
+        'Forest inventory': Forest_inventory_in
         }
     
     df = pd.DataFrame(data_dict)
@@ -367,17 +392,24 @@ if __name__ == '__main__':
     forest_harvest_removals = read_forest_harvest_data(filename,State_codes)
     print('=== Forest Harvest ===')
     print(np.sum(forest_harvest_removals))
-    
+
+    filename = '../Data_input/county_level_FRF_and_LCF_flux_in_MMTC_2015-2020_20230711.csv'
+    Forest_inventory = read_forest_inventory_data(filename,State_codes)
+    print('=== Forest inventory ===')
+    print(np.sum(np.mean(Forest_inventory, axis=0)))
+
     # Create dataframe and save
     for year in range(2015,2021):
         lateral_fluxes = create_dataframe(State_codes,State_abbrev,State_names,BioFuel_all_wood_total[year-2015,:],BioFuel_all_ethanol_total[year-2015,:],
-                                               BioFuel_all_biodiesal_total[year-2015,:],Landfill_all_data_C_all[year-2015,:],Incineration_data[year-2015,:],FF_IPPU_data[year-2015,:],
-                                               State_yield_TgC_2015to2020[year-2015,:],State_livestock_TgC[year-2015,:],state_Human_Respiration_allyear[year-2015,:],forest_harvest_removals)
+                                          BioFuel_all_biodiesal_total[year-2015,:],Landfill_all_data_C_all[year-2015,:],Incineration_data[year-2015,:],
+                                          FF_IPPU_data[year-2015,:],State_yield_TgC_2015to2020[year-2015,:],State_livestock_TgC[year-2015,:],
+                                          state_Human_Respiration_allyear[year-2015,:],forest_harvest_removals,Forest_inventory[year-2015,:])
         lateral_fluxes.to_csv('../Data_processed/lateral_fluxes_'+str(year).zfill(4)+'.csv', index=False)
 
 
     lateral_fluxes_mean = create_dataframe(State_codes,State_abbrev,State_names,np.mean(BioFuel_all_wood_total,0),np.mean(BioFuel_all_ethanol_total,0),
-                                         np.mean(BioFuel_all_biodiesal_total,0),np.mean(Landfill_all_data_C_all,0),np.mean(Incineration_data,0),np.mean(FF_IPPU_data,0),
-                                         np.mean(State_yield_TgC_2015to2020,0),np.mean(State_livestock_TgC,0),np.mean(state_Human_Respiration_allyear,0),forest_harvest_removals)
+                                           np.mean(BioFuel_all_biodiesal_total,0),np.mean(Landfill_all_data_C_all,0),np.mean(Incineration_data,0),
+                                           np.mean(FF_IPPU_data,0),np.mean(State_yield_TgC_2015to2020,0),np.mean(State_livestock_TgC,0),
+                                           np.mean(state_Human_Respiration_allyear,0),forest_harvest_removals,np.mean(Forest_inventory,0))
     lateral_fluxes_mean.to_csv('../Data_processed/lateral_fluxes_mean.csv', index=False)
 
