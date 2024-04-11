@@ -5,9 +5,9 @@ import pandas as pd
 from netCDF4 import Dataset
 
 '''
- read_lateral_fluxes.py
+ aggregate_tabular_carbon_datasets.py
 
- This program reads the lateral fluxes carbon fluxes and compiles them to state totals and writes to a file.
+ This program reads tabular carbon fluxes and compiles them to state totals and writes to a file.
  
  The lateral fluxes are:
     - biofuelds (wood, ethanol, bidiesal)
@@ -17,6 +17,8 @@ from netCDF4 import Dataset
     - Crop harvests
     - Livesotck respiration
     - Human respiration
+    - Forest harvests
+    - Forest inventory
 '''
 
 # ========
