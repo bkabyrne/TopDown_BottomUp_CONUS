@@ -115,3 +115,16 @@ def Regional_mask(resolution):
             area_res[j,i] = np.abs(x[j]*y[i])
 
     return lat_res, lon_res, USA_Regions_res, area_res
+
+def define_state_groupings():
+    
+    Region = {}
+    Region['Northwest'] = ['WASHINGTON', 'OREGON', 'IDAHO']
+    Region['N Great Plains'] = ['MONTANA', 'WYOMING', 'NORTH DAKOTA', 'SOUTH DAKOTA', 'NEBRASKA']
+    Region['Midwest'] = ['MINNESOTA', 'IOWA', 'MISSOURI', 'WISCONSIN', 'ILLINOIS', 'MICHIGAN', 'INDIANA', 'OHIO']
+    Region['Southwest'] = ['CALIFORNIA', 'NEVADA', 'UTAH', 'COLORADO', 'NEW MEXICO', 'ARIZONA']
+    Region['S Great Plains'] = ['TEXAS', 'OKLAHOMA', 'KANSAS']
+    Region['Southeast'] = ['LOUISIANA', 'ARKANSAS', 'MISSISSIPPI', 'ALABAMA', 'GEORGIA', 'FLORIDA', 'SOUTH CAROLINA', 'NORTH CAROLINA', 'VIRGINIA', 'KENTUCKY', 'TENNESSEE']
+    Region['Northeast'] = ['WEST VIRGINIA', 'MARYLAND', 'NEW JERSEY', 'DELAWARE', 'NEW YORK', 'CONNECTICUT', 'MASSACHUSETTS', 'VERMONT', 'NEW HAMPSHIRE', 'MAINE', 'RHODE ISLAND', 'DISTRICT OF COLUMBIA']
+
+    return Region

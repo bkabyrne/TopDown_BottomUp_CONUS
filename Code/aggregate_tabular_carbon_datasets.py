@@ -9,7 +9,7 @@ from netCDF4 import Dataset
 
  This program reads tabular carbon fluxes and compiles them to state totals and writes to a file.
  
- The lateral fluxes are:
+ The tabulated fluxes are:
     - biofuelds (wood, ethanol, bidiesal)
     - Landfills
     - Incineration
@@ -402,16 +402,16 @@ if __name__ == '__main__':
 
     # Create dataframe and save
     for year in range(2015,2021):
-        lateral_fluxes = create_dataframe(State_codes,State_abbrev,State_names,BioFuel_all_wood_total[year-2015,:],BioFuel_all_ethanol_total[year-2015,:],
+        tabulated_fluxes = create_dataframe(State_codes,State_abbrev,State_names,BioFuel_all_wood_total[year-2015,:],BioFuel_all_ethanol_total[year-2015,:],
                                           BioFuel_all_biodiesal_total[year-2015,:],Landfill_all_data_C_all[year-2015,:],Incineration_data[year-2015,:],
                                           FF_IPPU_data[year-2015,:],State_yield_TgC_2015to2020[year-2015,:],State_livestock_TgC[year-2015,:],
                                           state_Human_Respiration_allyear[year-2015,:],forest_harvest_removals,Forest_inventory[year-2015,:])
-        lateral_fluxes.to_csv('../Data_processed/lateral_fluxes_'+str(year).zfill(4)+'.csv', index=False)
+        tabulated_fluxes.to_csv('../Data_processed/tabulated_fluxes_'+str(year).zfill(4)+'.csv', index=False)
 
 
-    lateral_fluxes_mean = create_dataframe(State_codes,State_abbrev,State_names,np.mean(BioFuel_all_wood_total,0),np.mean(BioFuel_all_ethanol_total,0),
+    tabulated_fluxes_mean = create_dataframe(State_codes,State_abbrev,State_names,np.mean(BioFuel_all_wood_total,0),np.mean(BioFuel_all_ethanol_total,0),
                                            np.mean(BioFuel_all_biodiesal_total,0),np.mean(Landfill_all_data_C_all,0),np.mean(Incineration_data,0),
                                            np.mean(FF_IPPU_data,0),np.mean(State_yield_TgC_2015to2020,0),np.mean(State_livestock_TgC,0),
                                            np.mean(state_Human_Respiration_allyear,0),forest_harvest_removals,np.mean(Forest_inventory,0))
-    lateral_fluxes_mean.to_csv('../Data_processed/lateral_fluxes_mean.csv', index=False)
+    tabulated_fluxes_mean.to_csv('../Data_processed/tabulated_fluxes_mean.csv', index=False)
 

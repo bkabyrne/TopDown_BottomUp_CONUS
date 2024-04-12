@@ -71,13 +71,13 @@ if __name__ == '__main__':
     cropland_dC_region = calc_Regional_fluxes(cropland_dC,area,Regions)
     
     # Create xarray and save
-    da_a = xr.DataArray(grassland_dC_region, dims=('time','region'), attrs={'units': 'TgC/yr'})
-    da_b = xr.DataArray(cropland_dC_region, dims=('time','region'), attrs={'units': 'TgC/yr'})
+    da_a = xr.DataArray(grassland_dC_region, dims=('year','region'), attrs={'units': 'TgC/yr'})
+    da_b = xr.DataArray(cropland_dC_region, dims=('year','region'), attrs={'units': 'TgC/yr'})
     reg_dataset = xr.Dataset({'grassland': da_a, 'cropland': da_b})
     region_coords = ['Northwest','N Great Plains','Midwest','Southwest','S Great Plains','Southeast','Northeast']
     reg_dataset['region'] = region_coords
-    time_coords = [2015,2016,2017,2018,2019,2020]
-    reg_dataset['time'] = time_coords
+    year_coords = [2015,2016,2017,2018,2019,2020]
+    reg_dataset['year'] = year_coords
     reg_dataset.to_netcdf('../Data_processed/Regional_agricultural_stockchange.nc')
     
     
