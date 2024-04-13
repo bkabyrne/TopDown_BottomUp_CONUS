@@ -99,7 +99,10 @@ def Regional_mask(resolution):
     f=Dataset(file_in,mode='r')
     lat_res = f.variables['lat'+resolution][:]
     lon_res = f.variables['lon'+resolution][:]
-    USA_Regions_res = f.variables['mask_regions_'+resolution][:]
+    if resolution == '005':
+        USA_Regions_res = f.variables['mask_regions005'][:]
+    else:
+        USA_Regions_res = f.variables['mask_regions_'+resolution][:]
     f.close()
 
     earth_radius = 6371009 # in meters
@@ -125,6 +128,6 @@ def define_state_groupings():
     Region['Southwest'] = ['CALIFORNIA', 'NEVADA', 'UTAH', 'COLORADO', 'NEW MEXICO', 'ARIZONA']
     Region['S Great Plains'] = ['TEXAS', 'OKLAHOMA', 'KANSAS']
     Region['Southeast'] = ['LOUISIANA', 'ARKANSAS', 'MISSISSIPPI', 'ALABAMA', 'GEORGIA', 'FLORIDA', 'SOUTH CAROLINA', 'NORTH CAROLINA', 'VIRGINIA', 'KENTUCKY', 'TENNESSEE']
-    Region['Northeast'] = ['WEST VIRGINIA', 'MARYLAND', 'NEW JERSEY', 'DELAWARE', 'NEW YORK', 'CONNECTICUT', 'MASSACHUSETTS', 'VERMONT', 'NEW HAMPSHIRE', 'MAINE', 'RHODE ISLAND', 'DISTRICT OF COLUMBIA']
+    Region['Northeast'] = ['WEST VIRGINIA', 'MARYLAND', 'NEW JERSEY', 'DELAWARE', 'NEW YORK', 'CONNECTICUT', 'MASSACHUSETTS', 'VERMONT', 'NEW HAMPSHIRE', 'MAINE', 'RHODE ISLAND', 'DISTRICT OF COLUMBIA','PENNSYLVANIA']
 
     return Region
