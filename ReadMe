@@ -1,1 +1,22 @@
-Read me for CONUS study
+# Read me for CONUS study
+
+# Code:
+
+run_all_scripts.py
+  - Runs all scripts to aggregate data, create dataset and plot
+
+## Aggregateion scripts
+  - aggregate_tabular_carbon_datasets.py
+    - This combines all of the tabular data into state totals
+  - aggregate_agricultural_inventory.py
+    - Calculates regional totals in cropland and grassland carbon stock changes
+  - aggregate_TopDown_regional.py
+    - Calculates regional NCE totals from the v10 OCO-2 MIP
+
+## Dataset creation
+  - combined_topdown_and_bottomup.py
+    - This combines the aggregated datasets into a single table of the CO2 budget for regions across CONUS
+
+## Plotting scripts
+  - plot_regional_budget_on_map.py
+    - Generates a plot of the regional carbon budgets embedded on a map of CONUS
