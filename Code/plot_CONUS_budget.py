@@ -8,17 +8,27 @@ from pylab import *
 import numpy as np
 import utils
 
-def build_bar(mapx, mapy, ax, width, xvals, rf, fcolors, ymin, ymax, ytickvec, Rlabel):
-    ax_h = inset_axes(ax, width=width, \
-                    height=width*0.8, \
-                    loc=3, \
-                    bbox_to_anchor=(mapx, mapy), \
-                    bbox_transform=ax.transData, \
-                    borderpad=0, \
-                    axes_kwargs={'alpha': 0.35, 'visible': True})
+'''
+plot_CONUS_budget.py
+
+Creates a bar plot of CONUS totals for LNLGIS and all bottom-up fluxes
+
+output:
+  '../Figures/CONUS_TopDown_LNLGIS_vs_bottomup_20240412.png'
+
+'''
+
+def build_bar(ax,width, xvals, rf, fcolors, ymin, ymax, ytickvec, Rlabel):
+    #ax = inset_axes(ax, width=width, \
+    #                height=width*0.8, \
+    #                loc=3, \
+    #                bbox_to_anchor=(mapx, mapy), \
+    #                bbox_transform=ax.transData, \
+    #                borderpad=0, \
+    #                axes_kwargs={'alpha': 0.35, 'visible': True})
     #                                                                                              
     xvals_float = np.asarray(xvals, dtype=np.float32)
-    plt.plot([np.min(xvals_float-width)-width, np.max(xvals_float+width)+width],[0,0],'k',linewidth=0.5)
+    plt.plot([np.min(xvals_float-width)-width, np.max(xvals_float+width)+width],[0,0],'k',linewidth=1.)
     plt.plot([(xvals_float[0]-width+xvals_float[1])/2.,(xvals_float[0]-width+xvals_float[1])/2.],[ymin,ymax],'k:',linewidth=1.0)
     plt.fill_between([(xvals_float[1]+xvals_float[2]+width)/2.,np.max(xvals_float+width)+width],[ymin,ymin],[ymax,ymax],color='grey',alpha=0.18)
     #                                                                                              
@@ -38,27 +48,28 @@ def build_bar(mapx, mapy, ax, width, xvals, rf, fcolors, ymin, ymax, ytickvec, R
     for x,y,c in zip(xvals, yvals, fcolors):
         #                                                                                          
         if bar_iter == 0:
-            ax_h.bar(x-width, y, yerr=yerr, width=1.0, fc=c,capsize=2,edgecolor='k',linewidth=0.5,hatch='////',alpha=0.5)
-            plt.text(x-width,ymin+(ymax-ymin)*0.005,'TD',ha='center',va='bottom',fontsize=6.5)
+            ax.bar(x-width, y, yerr=yerr, width=1.0, fc=c,capsize=10,edgecolor='k',linewidth=1.,hatch='//',alpha=0.5)
+            plt.text(np.min(xvals_float-width)-width*0.7,ymin+(ymax-ymin)*0.005,'Top-Down',ha='left',va='bottom',fontsize=12.)
             bar_iter = 1
         elif bar_iter == 1:
-            ax_h.bar(x, y, width=1.0, fc=c,capsize=2,edgecolor='k',linewidth=0.5)
-            plt.text(x-width*2.25/3.,ymin+(ymax-ymin)*0.005,'Bottom-Up',ha='left',va='bottom',fontsize=6.5)
+            ax.bar(x, y, width=1.0, fc=c,capsize=5,edgecolor='k',linewidth=1.)
+            plt.text(x-width*2.75/3.,ymin+(ymax-ymin)*0.005,'Bottom-Up',ha='left',va='bottom',fontsize=12.)
             bar_iter = 2
         else:
-            ax_h.bar(x+width, y, width=1.0, fc=c,capsize=2,edgecolor='k',linewidth=0.5)
-    plt.arrow(np.max(xvals_float+width)+width*2./3.,50,0,100,width=0.07,head_width=0.4,head_length=0.6 * ((ymax-ymin)/((np.max(xvals_float+width)+width) - (np.min(xvals_float-width)-width))),fc='k')
-    plt.text(np.max(xvals_float+width)+width*1.6/3.,100,'source',ha='right',va='center',fontsize=6.5)
-    plt.arrow(np.max(xvals_float+width)+width*2./3.,-50,0,-100,width=0.07,head_width=0.4,head_length=0.6 * ((ymax-ymin)/((np.max(xvals_float+width)+width) - (np.min(xvals_float-width)-width))),fc='k')
-    plt.text(np.max(xvals_float+width)+width*1.6/3.,-100,'sink',ha='right',va='center',fontsize=6.5)
+            ax.bar(x+width, y, width=1.0, fc=c,capsize=2,edgecolor='k',linewidth=0.5)
+    plt.arrow(np.max(xvals_float+width)+width*2./3.,50*4.,0,100*4.,width=0.07,head_width=0.4,head_length=0.6 * ((ymax-ymin)/((np.max(xvals_float+width)+width) - (np.min(xvals_float-width)-width))),fc='k')
+    plt.text(np.max(xvals_float+width)+width*1.6/3.,100*4.,'source',ha='right',va='center',fontsize=12.5)
+    plt.arrow(np.max(xvals_float+width)+width*2./3.,-50*4.,0,-100*4.,width=0.07,head_width=0.4,head_length=0.6 * ((ymax-ymin)/((np.max(xvals_float+width)+width) - (np.min(xvals_float-width)-width))),fc='k')
+    plt.text(np.max(xvals_float+width)+width*1.6/3.,-100*4.,'sink',ha='right',va='center',fontsize=12.5)
     plt.xlim([np.min(xvals_float-width)-width, np.max(xvals_float+width)+width])
-    plt.text(np.min(xvals_float-width)-width + ((np.max(xvals_float+width)+width) - (np.min(xvals_float-width)-width))*0.99,ymin+(ymax-ymin)*0.99,Rlabel,ha='right',va='top',fontsize=7)
+    plt.text(np.min(xvals_float-width)-width + ((np.max(xvals_float+width)+width) - (np.min(xvals_float-width)-width))*0.99,ymin+(ymax-ymin)*0.99,Rlabel,ha='right',va='top',fontsize=14)
     plt.xticks([])#range(len(xvals)), xvals, fontsize=10, rotation=30)                             
-    ax_h.set_xticklabels([])
+    ax.set_xticklabels([])
     plt.ylim([ymin,ymax])
     plt.yticks(ytickvec)
-    ax_h.axis('on')
-    return ax_h
+    ax.axis('on')
+    plt.tick_params(axis='y', labelsize=14)
+    return ax
 
 lat, lon, Regions, area = utils.Regional_mask('005')
 Regions[np.where(Regions==0)]=np.nan
@@ -111,34 +122,14 @@ Regional_CO2_Budget['Others'] = ( Regional_CO2_Budget['Incineration'] +
                                   Regional_CO2_Budget['Lake and River emissions'] +
                                   Regional_CO2_Budget['Coastal carbon export'] ) 
 
-# Coordinates for sub-plots
-latlon_coords = {}
-latlon_coords[Region_label[0]] = [-122.5, 43]
-latlon_coords[Region_label[1]] = [-107.5, 42]
-latlon_coords[Region_label[2]] = [-93.5, 40]
-latlon_coords[Region_label[3]] = [-118, 31]
-latlon_coords[Region_label[4]] = [-104.5, 30]
-latlon_coords[Region_label[5]] = [-89, 32]
-latlon_coords[Region_label[6]] = [-79, 40]
+CONUS_CO2_Budget = Regional_CO2_Budget.sum(axis=0)
 
 
-# ========== Start Making Plot =========
-
-# Create basemap projection
-m = Basemap(width=4800000,height=3050000,resolution='l',projection='laea',lat_ts=39,lat_0=39.,lon_0=(-155-40)/2.)
-X,Y = np.meshgrid(lon-0.05/2.,lat-0.05/2.)
-xx,yy=m(X,Y)
 
 #Create figure
-fig = plt.figure(1, figsize=(6.75*0.95,5.05*0.95), dpi=300)
-ax1 = fig.add_axes([0.0,0.163,1.,0.83])
+fig = plt.figure(1, figsize=(7.50*0.95,5.05*0.95), dpi=300)
+ax1 = fig.add_axes([0.155,0.173,0.83,0.81])
 
-# Create background map
-tt = m.pcolormesh(xx,yy,ma.masked_invalid(Regions),alpha=0.4,linewidth=0,rasterized=True,cmap='hsv')
-m.drawcoastlines(color='grey',linewidth=0.25)
-m.drawcountries(color='grey',linewidth=0.25)
-m.drawstates(color='grey',linewidth=0.25)
-plt.title('Regional CO$_2$ budget (TgC year$^{-1}$)')
 
 # Create colors
 Inv_cmap_test1 = cm.get_cmap('viridis')
@@ -147,22 +138,20 @@ Inv_colors = ['grey',Inv_colorst[0],Inv_colorst[1],Inv_colorst[3],Inv_colorst[4]
 colors = [Inv_colors[3],'grey','black','green','orange','saddlebrown','olive','darkslategrey','pink']
 
 # Make inset plots
-for Rname in Region_label:
-    x1, y1 = m(latlon_coords[Rname][0],latlon_coords[Rname][1])   # get data coordinates for plotting         
-    bax = build_bar(x1, y1, ax1, 1.0, [1,2,3,4,5,6,7,8,9],Regional_CO2_Budget.loc[Rname],colors, -200, 370, [-100,0,100,200,300],Rname)
+bax = build_bar(ax1, 1.0, [1,2,3,4,5,6,7,8,9],CONUS_CO2_Budget,colors, -200*4., 370*4., [-400,0,400,800,1200],'CONUS')
 
 # Create lengend
-patch0 = mpatches.Patch(color=colors[0], alpha=0.5, hatch='////', label='NCE (top-down)')
+patch0 = mpatches.Patch(color=colors[0], alpha=0.5, hatch='//', label='NCE (top-down)')
 patch1 = mpatches.Patch(color=colors[1], label='NCE (bottom-up)')
 patch2 = mpatches.Patch(color=colors[2], label='Fossil fuel')
-patch3 = mpatches.Patch(color=colors[3], label='$\mathrm{\Delta C_{Total}}$')
+patch3 = mpatches.Patch(color=colors[3], label='C Stockchange')
 patch4 = mpatches.Patch(color=colors[4], label='Crop harvests')
 patch5 = mpatches.Patch(color=colors[5], label='Wood harvests')
 patch6 = mpatches.Patch(color=colors[6], label='Human+Livestock\nrespiration')
 patch7 = mpatches.Patch(color=colors[7], label='Biofuels')
 patch8 = mpatches.Patch(color=colors[8], label='Others')
-ax1.legend(handles=[patch0,patch1,patch2,patch3,patch4,patch5,patch6,patch7,patch8],loc='upper center', bbox_to_anchor=(0.5, 0.012),ncol=3,frameon=False)
-
+ax1.legend(handles=[patch0,patch1,patch2,patch3,patch4,patch5,patch6,patch7,patch8],loc='upper center', bbox_to_anchor=(0.5, 0.017),ncol=3,frameon=False,fontsize=11.5)
+plt.ylabel('Carbon flux (TgC year$^{-1}$)',fontsize=14)
 # Save figure
-plt.savefig('../Figures/Map_regional_TopDown_LNLGIS_vs_bottomup__20240412.png', dpi=300)
+plt.savefig('../Figures/CONUS_TopDown_LNLGIS_vs_bottomup_20240412.png', dpi=300)
 

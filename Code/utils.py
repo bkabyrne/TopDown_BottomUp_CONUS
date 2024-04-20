@@ -131,3 +131,4 @@ def define_state_groupings():
     Region['Northeast'] = ['WEST VIRGINIA', 'MARYLAND', 'NEW JERSEY', 'DELAWARE', 'NEW YORK', 'CONNECTICUT', 'MASSACHUSETTS', 'VERMONT', 'NEW HAMPSHIRE', 'MAINE', 'RHODE ISLAND', 'DISTRICT OF COLUMBIA','PENNSYLVANIA']
 
     return Region
+

@@ -8,6 +8,16 @@ from pylab import *
 import numpy as np
 import utils
 
+'''
+plot_OCO2MIP_experiments_regional_budget_on_map.py
+
+Makes regional NCE plots for all inversion experiments on bottom-up estimate
+
+Output:
+  ../Figures/Map_regional_NCE_TopDown_all_vs_bottomup__20240412.png
+
+'''
+
 def build_bar(mapx, mapy, ax, width, xvals, rf, fcolors, ymin, ymax, ytickvec, Rlabel):
     ax_h = inset_axes(ax, width=width, \
                     height=width*0.8, \
@@ -19,41 +29,37 @@ def build_bar(mapx, mapy, ax, width, xvals, rf, fcolors, ymin, ymax, ytickvec, R
     #                                                                                              
     xvals_float = np.asarray(xvals, dtype=np.float32)
     plt.plot([np.min(xvals_float-width)-width, np.max(xvals_float+width)+width],[0,0],'k',linewidth=0.5)
-    plt.plot([(xvals_float[0]-width+xvals_float[1])/2.,(xvals_float[0]-width+xvals_float[1])/2.],[ymin,ymax],'k:',linewidth=1.0)
-    plt.fill_between([(xvals_float[1]+xvals_float[2]+width)/2.,np.max(xvals_float+width)+width],[ymin,ymin],[ymax,ymax],color='grey',alpha=0.18)
-    #                                                                                              
-    yvals = [ rf['LNLGIS median'],
-              rf['Bottom-up NCE'],
-              rf['FF and IPPU'],
-              rf['Bottom-up dC'],
-              rf['Crop yield'],
-              rf['Forest Harvest'],
-              rf['Respiration'],
-              rf['Biofuel'],
-              rf['Others'] ]
-    #    
-    yerr = rf['LNLGIS std']
+    plt.plot([(xvals_float[4]+xvals_float[5])/2.,(xvals_float[4]+xvals_float[5])/2.],[ymin,ymax],'k:',linewidth=1.0)
+    #plt.fill_between([(xvals_float[1]+xvals_float[2]+width)/2.,np.max(xvals_float+width)+width],[ymin,ymin],[ymax,ymax],color='grey',alpha=0.18)
     #
+    yvals = [ rf['Prior median'],
+              rf['IS median'],
+              rf['LNLG median'],
+              rf['LNLGIS median'],
+              rf['LNLGOGIS median'],
+              rf['Bottom-up NCE'] ]
+
+    yerr = [ rf['Prior std'],
+             rf['IS std'],
+             rf['LNLG std'],
+             rf['LNLGIS std'],
+             rf['LNLGOGIS std'],
+             0]
+
     bar_iter = 0
-    for x,y,c in zip(xvals, yvals, fcolors):
-        #                                                                                          
-        if bar_iter == 0:
-            ax_h.bar(x-width, y, yerr=yerr, width=1.0, fc=c,capsize=2,edgecolor='k',linewidth=0.5,hatch='////',alpha=0.5)
-            plt.text(x-width,ymin+(ymax-ymin)*0.005,'TD',ha='center',va='bottom',fontsize=6.5)
-            bar_iter = 1
-        elif bar_iter == 1:
+    for x,y,ye,c in zip(xvals, yvals, yerr, fcolors):
+        #
+        print(ye)
+        if ye > 0:
+            ax_h.bar(x-width, y, yerr=ye, width=1.0, fc=c,capsize=2,edgecolor='k',linewidth=0.5,hatch='////',alpha=0.5)
+        elif ye == 1:
             ax_h.bar(x, y, width=1.0, fc=c,capsize=2,edgecolor='k',linewidth=0.5)
-            plt.text(x-width*2.25/3.,ymin+(ymax-ymin)*0.005,'Bottom-Up',ha='left',va='bottom',fontsize=6.5)
             bar_iter = 2
         else:
             ax_h.bar(x+width, y, width=1.0, fc=c,capsize=2,edgecolor='k',linewidth=0.5)
-    plt.arrow(np.max(xvals_float+width)+width*2./3.,50,0,100,width=0.07,head_width=0.4,head_length=0.6 * ((ymax-ymin)/((np.max(xvals_float+width)+width) - (np.min(xvals_float-width)-width))),fc='k')
-    plt.text(np.max(xvals_float+width)+width*1.6/3.,100,'source',ha='right',va='center',fontsize=6.5)
-    plt.arrow(np.max(xvals_float+width)+width*2./3.,-50,0,-100,width=0.07,head_width=0.4,head_length=0.6 * ((ymax-ymin)/((np.max(xvals_float+width)+width) - (np.min(xvals_float-width)-width))),fc='k')
-    plt.text(np.max(xvals_float+width)+width*1.6/3.,-100,'sink',ha='right',va='center',fontsize=6.5)
     plt.xlim([np.min(xvals_float-width)-width, np.max(xvals_float+width)+width])
-    plt.text(np.min(xvals_float-width)-width + ((np.max(xvals_float+width)+width) - (np.min(xvals_float-width)-width))*0.99,ymin+(ymax-ymin)*0.99,Rlabel,ha='right',va='top',fontsize=7)
-    plt.xticks([])#range(len(xvals)), xvals, fontsize=10, rotation=30)                             
+    plt.text(np.min(xvals_float-width)-width + ((np.max(xvals_float+width)+width) - (np.min(xvals_float-width)-width))*0.01,ymin+(ymax-ymin)*0.01,Rlabel,ha='left',va='bottom',fontsize=7)
+    plt.xticks([])
     ax_h.set_xticklabels([])
     plt.ylim([ymin,ymax])
     plt.yticks(ytickvec)
@@ -144,25 +150,23 @@ plt.title('Regional CO$_2$ budget (TgC year$^{-1}$)')
 Inv_cmap_test1 = cm.get_cmap('viridis')
 Inv_colorst = Inv_cmap_test1(np.linspace(0, 0.9, 5))
 Inv_colors = ['grey',Inv_colorst[0],Inv_colorst[1],Inv_colorst[3],Inv_colorst[4],'grey']
-colors = [Inv_colors[3],'grey','black','green','orange','saddlebrown','olive','darkslategrey','pink']
+
 
 # Make inset plots
 for Rname in Region_label:
     x1, y1 = m(latlon_coords[Rname][0],latlon_coords[Rname][1])   # get data coordinates for plotting         
-    bax = build_bar(x1, y1, ax1, 1.0, [1,2,3,4,5,6,7,8,9],Regional_CO2_Budget.loc[Rname],colors, -200, 370, [-100,0,100,200,300],Rname)
+    bax = build_bar(x1, y1, ax1, 1.0, [1,2,3,4,5,6],Regional_CO2_Budget.loc[Rname],Inv_colors, -200, 370, [-100,0,100,200,300],Rname)
 
 # Create lengend
-patch0 = mpatches.Patch(color=colors[0], alpha=0.5, hatch='////', label='NCE (top-down)')
-patch1 = mpatches.Patch(color=colors[1], label='NCE (bottom-up)')
-patch2 = mpatches.Patch(color=colors[2], label='Fossil fuel')
-patch3 = mpatches.Patch(color=colors[3], label='$\mathrm{\Delta C_{Total}}$')
-patch4 = mpatches.Patch(color=colors[4], label='Crop harvests')
-patch5 = mpatches.Patch(color=colors[5], label='Wood harvests')
-patch6 = mpatches.Patch(color=colors[6], label='Human+Livestock\nrespiration')
-patch7 = mpatches.Patch(color=colors[7], label='Biofuels')
-patch8 = mpatches.Patch(color=colors[8], label='Others')
-ax1.legend(handles=[patch0,patch1,patch2,patch3,patch4,patch5,patch6,patch7,patch8],loc='upper center', bbox_to_anchor=(0.5, 0.012),ncol=3,frameon=False)
+patch0 = mpatches.Patch(color=Inv_colors[0], alpha=0.5, hatch='////', label='Prior')
+patch1 = mpatches.Patch(color=Inv_colors[1], alpha=0.5, hatch='////', label='IS')
+patch2 = mpatches.Patch(color=Inv_colors[2], alpha=0.5, hatch='////', label='LNLG')
+patch3 = mpatches.Patch(color=Inv_colors[3], alpha=0.5, hatch='////', label='LNLGIS')
+patch4 = mpatches.Patch(color=Inv_colors[4], alpha=0.5, hatch='////', label='LNLGOGIS')
+patch5 = mpatches.Patch(color=Inv_colors[5], label='Bottom-up')
+
+ax1.legend(handles=[patch0,patch1,patch2,patch3,patch4,patch5],loc='upper center', bbox_to_anchor=(0.5, 0.012),ncol=3,frameon=False)
 
 # Save figure
-plt.savefig('../Figures/Map_regional_TopDown_LNLGIS_vs_bottomup__20240412.png', dpi=300)
+plt.savefig('../Figures/Map_regional_NCE_TopDown_all_vs_bottomup__20240412.png', dpi=300)
 

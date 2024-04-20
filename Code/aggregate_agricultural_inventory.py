@@ -14,13 +14,12 @@ import xarray as xr
 
 '''
 
-def calc_Regional_fluxes(flux,area_grid,Region_mask):
+def calc_Regional_fluxes(flux,Region_mask):
 
     Region_net_all = np.zeros((6,7))
     for region_i in range(7):
-        Region_mask_weighted = Region_mask[region_i,:,:] * area_grid
         for year_i in range(6):
-            Region_net_all[year_i,region_i] = np.sum(flux[year_i,:,:] * Region_mask_weighted) / np.sum(Region_mask_weighted)
+            Region_net_all[year_i,region_i] = np.sum(flux[year_i,:,:] * Region_mask[region_i,:,:]) # sum(TgC)
 
     return Region_net_all
 # ------------------------------
@@ -67,8 +66,8 @@ if __name__ == '__main__':
     lat, lon, Regions, area = utils.Regional_mask('05x0625')
     
     # Calculate regional totals
-    grassland_dC_region = calc_Regional_fluxes(grassland_dC,area,Regions)
-    cropland_dC_region = calc_Regional_fluxes(cropland_dC,area,Regions)
+    grassland_dC_region = calc_Regional_fluxes(grassland_dC,Regions)
+    cropland_dC_region = calc_Regional_fluxes(cropland_dC,Regions)
     
     # Create xarray and save
     da_a = xr.DataArray(grassland_dC_region, dims=('year','region'), attrs={'units': 'TgC/yr'})

@@ -11,7 +11,6 @@ from netCDF4 import Dataset
  
  The tabulated fluxes are:
     - biofuelds (wood, ethanol, bidiesal)
-    - Landfills
     - Incineration
     - Fossil Fuels (FF) and Industrial Processes (IPPU)
     - Crop harvests
@@ -83,39 +82,6 @@ def read_Biofuel_data(State_names):
     BioFuel_all_biodiesal_total = np.sum(BioFuel_all_biodiesal,0)
 
     return BioFuel_all_wood_total, BioFuel_all_ethanol_total, BioFuel_all_biodiesal_total
-
-# ========
-
-def read_Landfill_data(State_names):
-
-    # -------------------------------------------
-    # Reads Landfill data
-    # -------------------------------------------
-
-    Landfill_names = ['../Data_input/State_MSW_landfill.csv',
-        '../Data_input/State_Industrial_landfill.csv']
-
-    Landfill_all_data = np.zeros((2,6,51))
-    for i in range(2):
-        Landfill_all_data[i,:,:] = read_EPA_data(Landfill_names[i],State_names)
-    #print('Landfills CH4 in CO2 equivalent')
-    # Estimates use 1 CO2 ; 25 CH4 100-Year GWP value
-    #      Carbon dioxide equivalent (CO2e or CO2eq or CO2-e) of a quantity of 
-    #      gas is calculated from its GWP. For any gas, it is the mass of CO2 
-    #      which would warm the earth as much as the mass of that gas.[31] Thus 
-    #      it provides a common scale for measuring the climate effects of different 
-    #      gases. It is calculated as GWP multiplied by mass of the other gas. 
-    #      For example, if a gas has GWP of 100, two tonnes of the gas have CO2e of 
-    #      200 tonnes, and 9 tonnes of the gas has CO2e of 900 tonnes. 
-    # So, CO2e = CH4 * GWP
-    #          = TgCH4 * GWP
-    # So covert to TgC = X * gC/gCH4 * (1/GWP)
-    #                  = X * 12./16. * (1./25)
-    Landfill_all_data_C_as_CH4 = Landfill_all_data * (12./16. * (1./25))
-    # Assume total C emissions are double (because emissions are roughly half CO2 and CH4)
-    Landfill_all_data_C = Landfill_all_data_C_as_CH4 * 2.
-    Landfill_all_data_C_all = np.sum(Landfill_all_data_C,0)
-    return Landfill_all_data_C_all
 
 # ========
 
@@ -307,7 +273,7 @@ def read_forest_inventory_data(filename,State_codes):
 # ========
 
 def create_dataframe( State_codes_in, State_abbrev_in, State_names_in, BioFuel_all_wood_total_in, BioFuel_all_ethanol_total_in,
-                      BioFuel_all_biodiesal_total_in, Landfill_all_data_C_all_in, Incineration_data_in, FF_IPPU_data_in,
+                      BioFuel_all_biodiesal_total_in, Incineration_data_in, FF_IPPU_data_in,
                       State_yield_TgC_2015to2020_in, State_livestock_TgC_in, state_Human_Respiration_allyear_in, forest_harvest_removals_in,
                       Forest_inventory_in):
         
@@ -319,7 +285,6 @@ def create_dataframe( State_codes_in, State_abbrev_in, State_names_in, BioFuel_a
         'Biofuel wood': BioFuel_all_wood_total_in,
         'Biofuel ethanol': BioFuel_all_ethanol_total_in,
         'Biofuel biodiesal': BioFuel_all_biodiesal_total_in,
-        'Landfill': Landfill_all_data_C_all_in,
         'Incineration': Incineration_data_in,
         'FF and IPPU': FF_IPPU_data_in,
         'Crop yield': State_yield_TgC_2015to2020_in,
@@ -354,11 +319,6 @@ if __name__ == '__main__':
     print(np.mean(np.sum(BioFuel_all_ethanol_total,1),0))
     print('=== Biofuel - biodiesal ===')
     print(np.mean(np.sum(BioFuel_all_biodiesal_total,1),0))
-
-    # Read Landfill data
-    Landfill_all_data_C_all = read_Landfill_data(State_names)
-    print('=== Landfill ===')
-    print(np.mean(np.sum(Landfill_all_data_C_all,1),0))
 
     # Read Incineration data
     Incineration_names = '../Data_input/State_Incineration_of_Waste.csv'
@@ -403,14 +363,14 @@ if __name__ == '__main__':
     # Create dataframe and save
     for year in range(2015,2021):
         tabulated_fluxes = create_dataframe(State_codes,State_abbrev,State_names,BioFuel_all_wood_total[year-2015,:],BioFuel_all_ethanol_total[year-2015,:],
-                                          BioFuel_all_biodiesal_total[year-2015,:],Landfill_all_data_C_all[year-2015,:],Incineration_data[year-2015,:],
+                                          BioFuel_all_biodiesal_total[year-2015,:],Incineration_data[year-2015,:],
                                           FF_IPPU_data[year-2015,:],State_yield_TgC_2015to2020[year-2015,:],State_livestock_TgC[year-2015,:],
                                           state_Human_Respiration_allyear[year-2015,:],forest_harvest_removals,Forest_inventory[year-2015,:])
         tabulated_fluxes.to_csv('../Data_processed/tabulated_fluxes_'+str(year).zfill(4)+'.csv', index=False)
 
 
     tabulated_fluxes_mean = create_dataframe(State_codes,State_abbrev,State_names,np.mean(BioFuel_all_wood_total,0),np.mean(BioFuel_all_ethanol_total,0),
-                                           np.mean(BioFuel_all_biodiesal_total,0),np.mean(Landfill_all_data_C_all,0),np.mean(Incineration_data,0),
+                                           np.mean(BioFuel_all_biodiesal_total,0),np.mean(Incineration_data,0),
                                            np.mean(FF_IPPU_data,0),np.mean(State_yield_TgC_2015to2020,0),np.mean(State_livestock_TgC,0),
                                            np.mean(state_Human_Respiration_allyear,0),forest_harvest_removals,np.mean(Forest_inventory,0))
     tabulated_fluxes_mean.to_csv('../Data_processed/tabulated_fluxes_mean.csv', index=False)

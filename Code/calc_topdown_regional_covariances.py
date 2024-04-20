@@ -1,4 +1,8 @@
 # --- import modules ---   
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from mpl_toolkits.basemap import Basemap
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 from netCDF4 import Dataset
@@ -6,12 +10,14 @@ import utils
 
 '''
 
-Aggregate_TopDown_regional.py
+calc_topdown_regional_covariances.py
 
 This program reads in the OCO-2 v10 MIP and aggregates the models into regional totals for each MIP
+experiment then calculates the correlation matrix between regions.
 
 Output:
- - Regional_OCO2_MIP.nc
+ - '../Figures/text_covariance.png'
+     Plot of the correlation between regions
 
 '''
 
@@ -54,28 +60,10 @@ def calculate_regional_fluxes(Net_Flux,USA_Regions_1x1,area_1x1):
                 Region_net_all[im,k,j] = np.sum(TEMP * USA_Regions_1x1_temp * area_1x1) * 1e-12 # TgC/yr
                 area_all[im,k,j] = np.sum(USA_Regions_1x1_temp * area_1x1) # m2
     
-    # For year
-    Region_net_percentile_75 = np.percentile(Region_net_all,75, axis=0)
-    Region_net_percentile_50 = np.percentile(Region_net_all,50, axis=0)
-    Region_net_percentile_25 = np.percentile(Region_net_all,25, axis=0)
-    Region_net_std = np.abs(Region_net_percentile_75 - Region_net_percentile_25)/1.35
-    #
     # For mean year
     Region_net_all_meanYr = np.mean(Region_net_all,1)
-    Region_net_meanYr_percentile_75 = np.percentile(Region_net_all_meanYr,75, axis=0)
-    Region_net_meanYr_percentile_50 = np.percentile(Region_net_all_meanYr,50, axis=0)
-    Region_net_meanYr_percentile_25 = np.percentile(Region_net_all_meanYr,25, axis=0)
-    Region_net_meanYr_std = np.abs(Region_net_meanYr_percentile_75 - Region_net_meanYr_percentile_25)/1.35
 
-    Region_median_std = np.concatenate( ( np.expand_dims(Region_net_percentile_50,axis=0),
-                                          np.expand_dims(Region_net_std,axis=0) ),
-                                        axis=0)
-    
-    Region_meanYr_median_std = np.concatenate( ( np.expand_dims(Region_net_meanYr_percentile_50,axis=0),
-                                                 np.expand_dims(Region_net_meanYr_std,axis=0) ),
-                                               axis=0)
-
-    return Region_meanYr_median_std, Region_median_std
+    return Region_net_all_meanYr
 
 # ====
 
@@ -91,18 +79,26 @@ if __name__ == '__main__':
     experiments = ['Prior','IS','LNLG','LNLGIS','LNLGOGIS']
     for experiment in experiments:
         Net_Flux =  read_MIP_net_flux(models,experiment)
-        Region_meanYr_median_std, Region_median_std = calculate_regional_fluxes(Net_Flux,Regions,area)
-        all_exp_dict_year[experiment] = (['stat', 'year', 'region'], Region_median_std, {'units': 'TgC/yr'})
-        all_exp_dict[experiment] = (['stat', 'region'], Region_meanYr_median_std, {'units': 'TgC/yr'})
-
-    MIP_regional_data_year = xr.Dataset(all_exp_dict_year)
-    MIP_regional_data_year['region'] = region_coords
-    MIP_regional_data_year['year'] = time_coords
-    MIP_regional_data_year['stat'] = ['median','std']
-    MIP_regional_data_year.to_netcdf('../Data_processed/Regional_OCO2_MIP_year.nc')
+        Region_meanYr = calculate_regional_fluxes(Net_Flux,Regions,area)
+        Region_corrMatrix = np.corrcoef(Region_meanYr.T)
+        all_exp_dict[experiment] = (['region', 'region'], Region_corrMatrix)
 
     MIP_regional_data = xr.Dataset(all_exp_dict)
-    MIP_regional_data['region'] = region_coords
-    MIP_regional_data['stat'] = ['median','std']
-    MIP_regional_data.to_netcdf('../Data_processed/Regional_OCO2_MIP_2015to2020avg.nc')
 
+    region_labels = ['NW', 'NGP', 'MW', 'SW', 'SGP', 'SE', 'NE']
+
+    axvals = [ [0.1/2.,2.1/3.,0.8/2.,0.8/3.],
+               [0.1/2.,1.1/3.,0.8/2.,0.8/3.],
+               [1.1/2.,1.1/3.,0.8/2.,0.8/3.],
+               [0.1/2.,0.1/3.,0.8/2.,0.8/3.],
+               [1.1/2.,0.1/3.,0.8/2.,0.8/3.] ]
+        
+    fig = plt.figure(figsize=(8.5*0.875, 10.*0.875))
+    for i, exp in enumerate(experiments):
+        ax1 = fig.add_axes(axvals[i])
+        plt.imshow(MIP_regional_data[exp].values, vmin=-1, vmax=1, cmap='RdYlBu_r', interpolation='nearest')
+        plt.xticks(np.arange(len(region_labels)), region_labels)
+        plt.yticks(np.arange(len(region_labels)), region_labels)
+        plt.colorbar()
+        plt.title(exp)
+    plt.savefig('../Figures/text_covariance.png')
