@@ -125,6 +125,9 @@ Regional_CO2_Budget['Others'] = ( Regional_CO2_Budget['Incineration'] +
 CONUS_CO2_Budget = Regional_CO2_Budget.sum(axis=0)
 
 
+## IMPORTANT STANDARD DEVIATION NEEDS TO BE CALCULATED AFTER AGGREGATION. HARDCODE CORRECT NUMBER FOR NOW
+CONUS_CO2_Budget['LNLGIS std'] = 114.5
+
 
 #Create figure
 fig = plt.figure(1, figsize=(7.50*0.95,5.05*0.95), dpi=300)

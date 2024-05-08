@@ -67,7 +67,7 @@ def calculate_regional_fluxes(Net_Flux,USA_Regions_1x1,area_1x1):
     Region_net_meanYr_percentile_25 = np.percentile(Region_net_all_meanYr,25, axis=0)
     Region_net_meanYr_std = np.abs(Region_net_meanYr_percentile_75 - Region_net_meanYr_percentile_25)/1.35
 
-    Region_median_std = np.concatenate( ( np.expand_dims(Region_net_percentile_50,axis=0),
+x    Region_median_std = np.concatenate( ( np.expand_dims(Region_net_percentile_50,axis=0),
                                           np.expand_dims(Region_net_std,axis=0) ),
                                         axis=0)
     
