@@ -14,6 +14,8 @@ run_all_scripts.py
 ## Aggregateion scripts
   - aggregate_tabular_carbon_datasets.py
      - This combines all of the tabular data into state totals
+  - aggregate_human_respiration.py
+     - Calculates regional human respiration totals from a grided estimate
   - aggregate_agricultural_inventory.py
      - Calculates regional totals in cropland and grassland carbon stock changes
   - aggregate_TopDown_regional.py

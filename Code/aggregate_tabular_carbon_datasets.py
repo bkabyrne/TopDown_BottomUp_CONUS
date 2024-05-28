@@ -161,75 +161,6 @@ def read_livestock_data(file_path, State_names):
 
 # ========
 
-def Human_resp(State_names):
-
-    # -------------------------------------------
-    # Reads Human respiration data, provided
-    # as county totals and are aggregated to state totals
-    # -------------------------------------------
-
-    Human_Respiration_2015t = np.zeros(4000)+1e9
-    Human_Respiration_2016t = np.zeros(4000)+1e9
-    Human_Respiration_2017t = np.zeros(4000)+1e9
-    Human_Respiration_2018t = np.zeros(4000)+1e9
-    Human_Respiration_2019t = np.zeros(4000)+1e9
-    human_resp_index_of_statet = np.zeros(4000)+1e9
-
-
-    file_path="../Data_input/Human_respiration_counties_2010_2019.csv"
-    lne=0
-    n=0
-    with open(file_path, 'r', newline='') as csvfile:
-        reader = csv.reader(csvfile)
-        for row in reader:
-            if lne>0:
-                if isinstance(row[13], str):
-                    Human_Respiration_2015t[n] = float(row[7]) * 1e-12
-                    Human_Respiration_2016t[n] = float(row[8]) * 1e-12
-                    Human_Respiration_2017t[n] = float(row[9]) * 1e-12
-                    Human_Respiration_2018t[n] = float(row[10]) * 1e-12
-                    Human_Respiration_2019t[n] = float(row[11]) * 1e-12
-                    state = row[13].upper()
-                    human_resp_index_of_statet[n] = State_names.index(state)
-                    n += 1
-            lne=lne+1
-
-
-    Human_Respiration_2015 = Human_Respiration_2015t[0:n]
-    Human_Respiration_2016 = Human_Respiration_2016t[0:n]
-    Human_Respiration_2017 = Human_Respiration_2017t[0:n]
-    Human_Respiration_2018 = Human_Respiration_2018t[0:n]
-    Human_Respiration_2019 = Human_Respiration_2019t[0:n]
-    human_resp_index_of_state = human_resp_index_of_statet[0:n]
-
-    state_Human_Respiration_2015 = np.zeros(51)
-    state_Human_Respiration_2016 = np.zeros(51)
-    state_Human_Respiration_2017 = np.zeros(51)
-    state_Human_Respiration_2018 = np.zeros(51)
-    state_Human_Respiration_2019 = np.zeros(51)
-    for s in range(51):
-        II = np.where(human_resp_index_of_state == s)
-        state_Human_Respiration_2015[s] = np.sum(Human_Respiration_2015[II])
-        state_Human_Respiration_2016[s] = np.sum(Human_Respiration_2016[II])
-        state_Human_Respiration_2017[s] = np.sum(Human_Respiration_2017[II])
-        state_Human_Respiration_2018[s] = np.sum(Human_Respiration_2018[II])
-        state_Human_Respiration_2019[s] = np.sum(Human_Respiration_2019[II])
-    state_Human_Respiration_allyear = np.zeros((6,51))
-    state_Human_Respiration_allyear[0,:] = state_Human_Respiration_2015
-    state_Human_Respiration_allyear[1,:] = state_Human_Respiration_2016
-    state_Human_Respiration_allyear[2,:] = state_Human_Respiration_2017
-    state_Human_Respiration_allyear[3,:] = state_Human_Respiration_2018
-    state_Human_Respiration_allyear[4,:] = state_Human_Respiration_2019
-    state_Human_Respiration_allyear[5,:] = state_Human_Respiration_2019 # Assume 2020 respiration same as 2019
-    mean_year_Human_Resp = (state_Human_Respiration_2015+
-                            state_Human_Respiration_2016+
-                            state_Human_Respiration_2017+
-                            state_Human_Respiration_2018+
-                            state_Human_Respiration_2019)/5.
-    return state_Human_Respiration_allyear
-
-# ========
-
 def read_forest_harvest_data(filename,State_codes):
 
     statecd = []
@@ -274,7 +205,7 @@ def read_forest_inventory_data(filename,State_codes):
 
 def create_dataframe( State_codes_in, State_abbrev_in, State_names_in, BioFuel_all_wood_total_in, BioFuel_all_ethanol_total_in,
                       BioFuel_all_biodiesal_total_in, Incineration_data_in, FF_IPPU_data_in,
-                      State_yield_TgC_2015to2020_in, State_livestock_TgC_in, state_Human_Respiration_allyear_in, forest_harvest_removals_in,
+                      State_yield_TgC_2015to2020_in, State_livestock_TgC_in, forest_harvest_removals_in,
                       Forest_inventory_in):
         
     # Create dataframe with all the data
@@ -289,7 +220,6 @@ def create_dataframe( State_codes_in, State_abbrev_in, State_names_in, BioFuel_a
         'FF and IPPU': FF_IPPU_data_in,
         'Crop yield': State_yield_TgC_2015to2020_in,
         'Livestock Respiration': State_livestock_TgC_in,
-        'Human Respiration': state_Human_Respiration_allyear_in,
         'Forest Harvest': forest_harvest_removals_in,
         'Forest inventory': Forest_inventory_in
         }
@@ -344,11 +274,6 @@ if __name__ == '__main__':
     print('=== livestock Respiration ===')
     print(np.sum(np.mean(State_livestock_TgC, axis=0)))
 
-    #Human Respiration
-    state_Human_Respiration_allyear = Human_resp(State_names)
-    print('=== Human Respiration ===')
-    print(np.sum(np.mean(state_Human_Respiration_allyear, axis=0)))
-
     # Example usage:
     filename = '../Data_input/CMS_state_harvest_removals_082823.csv'
     forest_harvest_removals = read_forest_harvest_data(filename,State_codes)
@@ -365,13 +290,13 @@ if __name__ == '__main__':
         tabulated_fluxes = create_dataframe(State_codes,State_abbrev,State_names,BioFuel_all_wood_total[year-2015,:],BioFuel_all_ethanol_total[year-2015,:],
                                           BioFuel_all_biodiesal_total[year-2015,:],Incineration_data[year-2015,:],
                                           FF_IPPU_data[year-2015,:],State_yield_TgC_2015to2020[year-2015,:],State_livestock_TgC[year-2015,:],
-                                          state_Human_Respiration_allyear[year-2015,:],forest_harvest_removals,Forest_inventory[year-2015,:])
+                                          forest_harvest_removals,Forest_inventory[year-2015,:])
         tabulated_fluxes.to_csv('../Data_processed/tabulated_fluxes_'+str(year).zfill(4)+'.csv', index=False)
 
 
     tabulated_fluxes_mean = create_dataframe(State_codes,State_abbrev,State_names,np.mean(BioFuel_all_wood_total,0),np.mean(BioFuel_all_ethanol_total,0),
                                            np.mean(BioFuel_all_biodiesal_total,0),np.mean(Incineration_data,0),
                                            np.mean(FF_IPPU_data,0),np.mean(State_yield_TgC_2015to2020,0),np.mean(State_livestock_TgC,0),
-                                           np.mean(state_Human_Respiration_allyear,0),forest_harvest_removals,np.mean(Forest_inventory,0))
+                                           forest_harvest_removals,np.mean(Forest_inventory,0))
     tabulated_fluxes_mean.to_csv('../Data_processed/tabulated_fluxes_mean.csv', index=False)
 

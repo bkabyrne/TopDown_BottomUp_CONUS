@@ -67,7 +67,11 @@ if __name__ == '__main__':
     for region in regions:
         Regional_fluxes_dict[region] = state_fluxes[state_fluxes['State name'].isin(regions[region])].iloc[:,3:].sum(axis=0)
     Regional_fluxes = pd.DataFrame.from_dict(Regional_fluxes_dict, orient='index')
-        
+
+    # Read Human respiration regional totals and calculate 2015-19 mean
+    Regional_Human_Resp_eachYear = xr.open_dataset('../Data_processed/Human_respiration_regional.nc')
+    Regional_Human_Resp = Regional_Human_Resp_eachYear.mean(dim='year').to_dataframe()
+
     # Read cropland and grassland regional totals and calculate 2015-20 mean
     Regional_crop_grass_stock_eachYear = xr.open_dataset('../Data_processed/Regional_agricultural_stockchange.nc')
     Regional_crop_grass_stock = Regional_crop_grass_stock_eachYear.mean(dim='year').to_dataframe()
@@ -88,7 +92,7 @@ if __name__ == '__main__':
     regional_estimate.index = Regional_crop_grass_stock.index
     
     # Combine all data into a Regional 2015-20 mean dataset
-    Regional_CO2_Budget = pd.concat([Regional_fluxes, Regional_crop_grass_stock, regional_estimate, Regional_TopDown_median, Regional_TopDown_std], axis=1)
+    Regional_CO2_Budget = pd.concat([Regional_fluxes, Regional_Human_Resp, Regional_crop_grass_stock, regional_estimate, Regional_TopDown_median, Regional_TopDown_std], axis=1)
     Regional_CO2_Budget.index.name = 'Region'
     Regional_CO2_Budget.to_csv('../Data_processed/Regional_CO2_Budget.csv')
     

@@ -84,8 +84,8 @@ def create_state_dataframe():
 def Regional_mask(resolution):
 
     if resolution == '005':
-        xres = 0.005
-        yres = 0.005
+        xres = 0.05
+        yres = 0.05
     elif resolution == '05x0625':
         xres = 0.625
         yres = 0.5
