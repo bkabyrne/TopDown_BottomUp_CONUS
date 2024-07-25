@@ -4,7 +4,7 @@ import xarray as xr
 import pandas as pd
 
 '''
- combined_topdown_and_bottomup.py
+ create_BottomUp_dataset.py
 
  This program combines all the dataset to produce a regional CO2 budget averaged over 2015-20.
  This dataset is written to: 
@@ -30,6 +30,8 @@ def split_to_regions(CONUS_flux):
     regional_flux = {key: value * regional_area_frac for key, value in CONUS_flux.items()}
     
     return pd.DataFrame(regional_flux)
+# -------------------------------
+
 
 def estimate_regional_fluxes_from_CONUS_totals(Crop_inv, Forest_inv):
     """
@@ -42,39 +44,48 @@ def estimate_regional_fluxes_from_CONUS_totals(Crop_inv, Forest_inv):
     Returns:
     tuple: Updated Crop_inv, Forest_inv, and River_inv dataframes.
     """
+    
     # Define fluxes that were only available as CONUS totals
     CONUS_flux = {
         'aquatic burial': -20.6,  # TgC/yr
         'Coastal carbon export': -41.5  # TgC/yr
     }
 
-    # PIC and SWDS stockchange total
+    # -------- FORESTS --------
     PIC_SWDS_total = -14.0 - 18.6
     net_wood_trade = 16.5 - 19.7 # import - export
+    # Assume that carbon uptake ending up in PIC, SWDS, and exported has the same spatial structure as forest harvest, such that:
+    # Forest Harvest = Forest Harvest_adj + PIC and SWDS + trade
     Forest_inv['Harvest (adjusted)'] = Forest_inv['Harvest'] * ((Forest_inv['Harvest'].sum() - PIC_SWDS_total - net_wood_trade)/Forest_inv['Harvest'].sum())
     Forest_inv['PIC and SWDS'] = Forest_inv['Harvest'] * ((PIC_SWDS_total)/Forest_inv['Harvest'].sum())
     Forest_inv['trade'] = Forest_inv['Harvest'] * ((net_wood_trade)/Forest_inv['Harvest'].sum())
-    # Calculate residual wood flux for forests
+
+    # Calculate residual wood flux for forests to balance lateral fluxes
     C_in = np.abs(Forest_inv['Harvest (adjusted)'].sum())
     C_out = Forest_inv['Biofuel'].sum()
     CONUS_flux['residual wood'] = C_in - C_out
+    # -------------------------
 
+    # -------- CROPS --------
     # landfill stockchange
     crop_landfill_stockchange = -0.9
     net_crop_trade = 15.4 - 65.4 # import - export
+    # Assume that uptake ending up in landfills or exported have the same spatial structure as crop harvest, such that:
+    # Crop Harvest = Crop Harvest_adj + landfills + trade
     Crop_inv['Harvest (adjusted)'] = Crop_inv['Harvest'] * ((Crop_inv['Harvest'].sum() - crop_landfill_stockchange - net_crop_trade)/Crop_inv['Harvest'].sum())
     Crop_inv['landfill crops'] = Crop_inv['Harvest'] * ((crop_landfill_stockchange)/Crop_inv['Harvest'].sum())
     Crop_inv['trade'] = Crop_inv['Harvest'] * ((net_crop_trade)/Crop_inv['Harvest'].sum())
-    # Calculate residual crop flux
+    # Calculate residual crop flux to balance lateral fluxes
     C_in = np.abs(Crop_inv['Harvest (adjusted)'].sum())
     C_out = Crop_inv['Biofuel'].sum() + Crop_inv['Livestock Respiration'].sum() + Crop_inv['Human Respiration'].sum()
     CONUS_flux['residual crop'] = C_in - C_out
+    # -----------------------
 
     # Split CONUS totals to regions
     regional_estimate = split_to_regions(CONUS_flux)
     regional_estimate.index = Crop_inv.index
 
-    # Ensure we're modifying the original DataFrame directly using .loc to avoid SettingWithCopyWarning
+
     # Add flux estimates to Forest inventory
     Forest_inv.loc[:, 'residual'] = regional_estimate['residual wood']
 
@@ -85,7 +96,17 @@ def estimate_regional_fluxes_from_CONUS_totals(Crop_inv, Forest_inv):
     River_inv = regional_estimate[['aquatic burial', 
                                    'Coastal carbon export']]
 
+    # Remove total harvest field (since we have adjusted harvests now)
+    Crop_inv = Crop_inv.drop(columns=['Harvest'])
+    Forest_inv = Forest_inv.drop(columns=['Harvest'])
+
+    # add index term
+    Forest_inv.index.name = 'Region'
+    Crop_inv.index.name = 'Region'
+    River_inv.index.name = 'Region'
+
     return Crop_inv, Forest_inv, River_inv
+# ------------------------------------------------------------------
 
 
 def split_CropGrass(Regional_fluxes, Regional_Human_Resp, Regional_crop_grass_stock):
@@ -129,16 +150,10 @@ def split_CropGrass(Regional_fluxes, Regional_Human_Resp, Regional_crop_grass_st
     }, inplace=True)
 
     return CropGrass_inventory, Forest_inventory
+# ----------------------------------------------------------------------------------
 
 
-# ====
-
-
-if __name__ == '__main__':
-    
-    # Read state & regional info
-    states = utils.create_state_dataframe()
-    regions = utils.define_state_groupings()
+def read_datasets_and_calculate_regions(states,regions):
     
     # Read tabular state totals and calculate state totals
     state_fluxes = pd.read_csv("../Data_processed/tabulated_fluxes_mean.csv")
@@ -154,38 +169,12 @@ if __name__ == '__main__':
     # Read cropland and grassland regional totals and calculate 2015-20 mean
     Regional_crop_grass_stock_eachYear = xr.open_dataset('../Data_processed/Regional_agricultural_stockchange.nc')
     Regional_crop_grass_stock = Regional_crop_grass_stock_eachYear.mean(dim='year').to_dataframe()
-    
-    ## Read OCO2 MIP regional total, calculate 2015-20 mean and standard deviations
-    #Regional_TopDown = xr.open_dataset('../Data_processed/Regional_OCO2_MIP_2015to2020avg.nc')
-    ## ----------
-    #Regional_TopDown_median = Regional_TopDown.sel(stat='median').to_dataframe()
-    #Regional_TopDown_median.drop(columns=['stat'], inplace=True)
-    #Regional_TopDown_median.columns = [f'{col} median' if col != 'region' else col for col in Regional_TopDown_median.columns] 
-    ## ----------
-    #Regional_TopDown_std = Regional_TopDown.sel(stat='std').to_dataframe()
-    #Regional_TopDown_std.drop(columns=['stat'], inplace=True)
-    #Regional_TopDown_std.columns = [f'{col} std' if col != 'region' else col for col in Regional_TopDown_std.columns]
 
-    # Split into Forest and Crop/Grass inventories
-    CropGrass_inventory, Forest_inventory = split_CropGrass(Regional_fluxes, Regional_Human_Resp, Regional_crop_grass_stock)
+    return Regional_fluxes, Regional_Human_Resp, Regional_crop_grass_stock
+# ------------------------------------------------------
 
-    # Fluxes only available as CONUS totals (area weighted to regional)
-    CropGrass_inventory, Forest_inventory, River_inventory = estimate_regional_fluxes_from_CONUS_totals(CropGrass_inventory,Forest_inventory)
-    CropGrass_inventory = CropGrass_inventory.drop(columns=['Harvest'])
-    Forest_inventory = Forest_inventory.drop(columns=['Harvest'])
 
-    FF_and_IPPU_inventory = Regional_fluxes['FF and IPPU'].copy()
-        
-    Forest_inventory.index.name = 'Region'
-    CropGrass_inventory.index.name = 'Region'
-    River_inventory.index.name = 'Region'
-    FF_and_IPPU_inventory.index.name = 'Region'
-
-    Forest_inventory.to_csv('../Data_processed/Regional_CO2_Budget_Forests.csv')
-    CropGrass_inventory.to_csv('../Data_processed/Regional_CO2_Budget_CropGrass.csv')
-    River_inventory.to_csv('../Data_processed/Regional_CO2_Budget_River.csv')
-    FF_and_IPPU_inventory.to_csv('../Data_processed/Regional_CO2_Budget_Fossil.csv')
-
+def calculate_summary_dataset(Regional_fluxes,CropGrass_inventory, Forest_inventory, River_inventory):
     
     # Calculating combined variables
     combined_biofuel = Forest_inventory['Biofuel'] + CropGrass_inventory['Biofuel']
@@ -212,12 +201,39 @@ if __name__ == '__main__':
         'Coastal carbon export': River_inventory['Coastal carbon export']
     })
 
-    summary_df.to_csv('../Data_processed/Regional_CO2_Budget_Summary.csv')
+    summary_df.index.name = 'Region'
+
+    return summary_df
+# -----------------------------------------------------------------------------------
+
+
+def main():
+    # Read state & regional info
+    states = utils.create_state_dataframe()
+    regions = utils.define_state_groupings()
+
+    # Read tabular state data and calculate regional totals
+    # Read annual human respiration and calculate 2015-20 mean
+    # Read annual cropland/grassland stockchange regional totals and calculate 2015-20 mean
+    Regional_fluxes, Regional_Human_Resp, Regional_crop_grass_stock = read_datasets_and_calculate_regions(states,regions)
     
-    #stophere
-    
-    ## Combine all data into a Regional 2015-20 mean dataset
-    #Regional_CO2_Budget = pd.concat([Regional_fluxes, Regional_Human_Resp, Regional_crop_grass_stock, regional_estimate, Regional_TopDown_median, Regional_TopDown_std], axis=1)
-    #Regional_CO2_Budget.index.name = 'Region'
-    #Regional_CO2_Budget.to_csv('../Data_processed/Regional_CO2_Budget.csv')
-    
+    # Split into Forest and Crop/Grass inventories
+    CropGrass_inventory, Forest_inventory = split_CropGrass(Regional_fluxes, Regional_Human_Resp, Regional_crop_grass_stock)
+
+    # Fluxes only available as CONUS totals (area weighted to regional)
+    CropGrass_inventory, Forest_inventory, River_inventory = estimate_regional_fluxes_from_CONUS_totals(CropGrass_inventory,Forest_inventory)
+
+    # Save datasets
+    Forest_inventory.to_csv('../Data_processed/Regional_CO2_Budget_Forests.csv')
+    CropGrass_inventory.to_csv('../Data_processed/Regional_CO2_Budget_CropGrass.csv')
+    River_inventory.to_csv('../Data_processed/Regional_CO2_Budget_River.csv')
+
+    # Create dataset that has FF+IPPU, total stock change, and aggregate lateral fluxes
+    summary = calculate_summary_dataset(Regional_fluxes,CropGrass_inventory, Forest_inventory, River_inventory)
+
+    # Save summary dataset
+    summary.to_csv('../Data_processed/Regional_CO2_Budget_Summary.csv')
+
+
+if __name__ == '__main__':
+    main()
