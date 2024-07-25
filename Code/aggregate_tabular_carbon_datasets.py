@@ -81,7 +81,9 @@ def read_Biofuel_data(State_names):
         BioFuel_all_biodiesal[i,:,:] = read_EPA_data(BioFuel_biodiesal_file_names[i],State_names) * 12./44. # CO2 -> C
     BioFuel_all_biodiesal_total = np.sum(BioFuel_all_biodiesal,0)
 
-    return BioFuel_all_wood_total, BioFuel_all_ethanol_total, BioFuel_all_biodiesal_total
+    BioFuel_all_crop_total = BioFuel_all_ethanol_total + BioFuel_all_biodiesal_total
+
+    return BioFuel_all_wood_total, BioFuel_all_crop_total
 
 # ========
 
@@ -203,8 +205,8 @@ def read_forest_inventory_data(filename,State_codes):
 
 # ========
 
-def create_dataframe( State_codes_in, State_abbrev_in, State_names_in, BioFuel_all_wood_total_in, BioFuel_all_ethanol_total_in,
-                      BioFuel_all_biodiesal_total_in, Incineration_data_in, FF_IPPU_data_in,
+def create_dataframe( State_codes_in, State_abbrev_in, State_names_in, BioFuel_all_wood_total_in,
+                      BioFuel_all_crop_total_in, Incineration_data_in, FF_IPPU_data_in,
                       State_yield_TgC_2015to2020_in, State_livestock_TgC_in, forest_harvest_removals_in,
                       Forest_inventory_in):
         
@@ -214,14 +216,13 @@ def create_dataframe( State_codes_in, State_abbrev_in, State_names_in, BioFuel_a
         'State abbr': State_abbrev_in,
         'State name': State_names_in,
         'Biofuel wood': BioFuel_all_wood_total_in,
-        'Biofuel ethanol': BioFuel_all_ethanol_total_in,
-        'Biofuel biodiesal': BioFuel_all_biodiesal_total_in,
+        'Biofuel crop': BioFuel_all_crop_total_in,
         'Incineration': Incineration_data_in,
         'FF and IPPU': FF_IPPU_data_in,
         'Crop yield': State_yield_TgC_2015to2020_in,
         'Livestock Respiration': State_livestock_TgC_in,
         'Forest Harvest': forest_harvest_removals_in,
-        'Forest inventory': Forest_inventory_in
+        'DeltaC_forest': Forest_inventory_in
         }
     
     df = pd.DataFrame(data_dict)
@@ -242,13 +243,11 @@ if __name__ == '__main__':
     State_names = state_df['State Name'].tolist()
 
     # Read Biofuel data
-    BioFuel_all_wood_total, BioFuel_all_ethanol_total, BioFuel_all_biodiesal_total = read_Biofuel_data(State_names)
+    BioFuel_all_wood_total, BioFuel_all_crop_total = read_Biofuel_data(State_names)
     print('=== Biofuel - wood ===')
     print(np.mean(np.sum(BioFuel_all_wood_total,1),0))
-    print('=== Biofuel - ethanol ===')
-    print(np.mean(np.sum(BioFuel_all_ethanol_total,1),0))
-    print('=== Biofuel - biodiesal ===')
-    print(np.mean(np.sum(BioFuel_all_biodiesal_total,1),0))
+    print('=== Biofuel - crop ===')
+    print(np.mean(np.sum(BioFuel_all_crop_total,1),0))
 
     # Read Incineration data
     Incineration_names = '../Data_input/State_Incineration_of_Waste.csv'
@@ -287,15 +286,15 @@ if __name__ == '__main__':
 
     # Create dataframe and save
     for year in range(2015,2021):
-        tabulated_fluxes = create_dataframe(State_codes,State_abbrev,State_names,BioFuel_all_wood_total[year-2015,:],BioFuel_all_ethanol_total[year-2015,:],
-                                          BioFuel_all_biodiesal_total[year-2015,:],Incineration_data[year-2015,:],
+        tabulated_fluxes = create_dataframe(State_codes,State_abbrev,State_names,BioFuel_all_wood_total[year-2015,:],
+                                          BioFuel_all_crop_total[year-2015,:],Incineration_data[year-2015,:],
                                           FF_IPPU_data[year-2015,:],State_yield_TgC_2015to2020[year-2015,:],State_livestock_TgC[year-2015,:],
                                           forest_harvest_removals,Forest_inventory[year-2015,:])
         tabulated_fluxes.to_csv('../Data_processed/tabulated_fluxes_'+str(year).zfill(4)+'.csv', index=False)
 
 
-    tabulated_fluxes_mean = create_dataframe(State_codes,State_abbrev,State_names,np.mean(BioFuel_all_wood_total,0),np.mean(BioFuel_all_ethanol_total,0),
-                                           np.mean(BioFuel_all_biodiesal_total,0),np.mean(Incineration_data,0),
+    tabulated_fluxes_mean = create_dataframe(State_codes,State_abbrev,State_names,np.mean(BioFuel_all_wood_total,0),
+                                           np.mean(BioFuel_all_crop_total,0),np.mean(Incineration_data,0),
                                            np.mean(FF_IPPU_data,0),np.mean(State_yield_TgC_2015to2020,0),np.mean(State_livestock_TgC,0),
                                            forest_harvest_removals,np.mean(Forest_inventory,0))
     tabulated_fluxes_mean.to_csv('../Data_processed/tabulated_fluxes_mean.csv', index=False)

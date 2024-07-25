@@ -44,7 +44,7 @@ def estimate_regional_fluxes_from_CONUS_totals(Crop_inv, Forest_inv):
     """
     # Define fluxes that were only available as CONUS totals
     CONUS_flux = {
-        'Lake and River carbon burial': -20.6,  # TgC/yr
+        'aquatic burial': -20.6,  # TgC/yr
         'Coastal carbon export': -41.5  # TgC/yr
     }
 
@@ -52,7 +52,7 @@ def estimate_regional_fluxes_from_CONUS_totals(Crop_inv, Forest_inv):
     PIC_SWDS_total = -14.0 - 18.6
     net_wood_trade = 16.5 - 19.7 # import - export
     Forest_inv['Harvest (adjusted)'] = Forest_inv['Harvest'] * ((Forest_inv['Harvest'].sum() - PIC_SWDS_total - net_wood_trade)/Forest_inv['Harvest'].sum())
-    Forest_inv['PIC and SWDS stockchange'] = Forest_inv['Harvest'] * ((PIC_SWDS_total)/Forest_inv['Harvest'].sum())
+    Forest_inv['PIC and SWDS'] = Forest_inv['Harvest'] * ((PIC_SWDS_total)/Forest_inv['Harvest'].sum())
     Forest_inv['trade'] = Forest_inv['Harvest'] * ((net_wood_trade)/Forest_inv['Harvest'].sum())
     # Calculate residual wood flux for forests
     C_in = np.abs(Forest_inv['Harvest (adjusted)'].sum())
@@ -63,7 +63,7 @@ def estimate_regional_fluxes_from_CONUS_totals(Crop_inv, Forest_inv):
     crop_landfill_stockchange = -0.9
     net_crop_trade = 15.4 - 65.4 # import - export
     Crop_inv['Harvest (adjusted)'] = Crop_inv['Harvest'] * ((Crop_inv['Harvest'].sum() - crop_landfill_stockchange - net_crop_trade)/Crop_inv['Harvest'].sum())
-    Crop_inv['landfill stockchange'] = Crop_inv['Harvest'] * ((crop_landfill_stockchange)/Crop_inv['Harvest'].sum())
+    Crop_inv['landfill crops'] = Crop_inv['Harvest'] * ((crop_landfill_stockchange)/Crop_inv['Harvest'].sum())
     Crop_inv['trade'] = Crop_inv['Harvest'] * ((net_crop_trade)/Crop_inv['Harvest'].sum())
     # Calculate residual crop flux
     C_in = np.abs(Crop_inv['Harvest (adjusted)'].sum())
@@ -82,7 +82,7 @@ def estimate_regional_fluxes_from_CONUS_totals(Crop_inv, Forest_inv):
     Crop_inv.loc[:, 'residual'] = regional_estimate['residual crop']
 
     # Create River inventory from relevant flux estimates
-    River_inv = regional_estimate[['Lake and River carbon burial', 
+    River_inv = regional_estimate[['aquatic burial', 
                                    'Coastal carbon export']]
 
     return Crop_inv, Forest_inv, River_inv
@@ -119,14 +119,13 @@ def split_CropGrass(Regional_fluxes, Regional_Human_Resp, Regional_crop_grass_st
     CropGrass_inventory.rename(columns={'Crop yield': 'Harvest'}, inplace=True)
 
     # Select relevant columns for Forest inventory and create a copy to avoid SettingWithCopyWarning
-    forest_columns = ['Biofuel wood', 'Forest Harvest', 'Forest inventory']
+    forest_columns = ['Biofuel wood', 'Forest Harvest', 'DeltaC_forest']
     Forest_inventory = Regional_fluxes[forest_columns].copy()
     
     # Rename columns for consistency
     Forest_inventory.rename(columns={
         'Biofuel wood': 'Biofuel',
         'Forest Harvest': 'Harvest',
-        'Forest inventory': 'stockchange'
     }, inplace=True)
 
     return CropGrass_inventory, Forest_inventory
@@ -193,17 +192,17 @@ if __name__ == '__main__':
     combined_respiration = CropGrass_inventory['Human Respiration'] + CropGrass_inventory['Livestock Respiration']
     combined_trade = Forest_inventory['trade'] + CropGrass_inventory['trade']
     combined_residual = Forest_inventory['residual'] + CropGrass_inventory['residual']
-    combined_stockchange = (Forest_inventory['stockchange'] + 
-                            Forest_inventory['PIC and SWDS stockchange'] + 
-                            CropGrass_inventory['grassland stockchange'] + 
-                            CropGrass_inventory['cropland stockchange'] + 
-                            CropGrass_inventory['landfill stockchange'] +
-                            River_inventory['Lake and River carbon burial'])
+    combined_stockchange = (Forest_inventory['DeltaC_forest'] + 
+                            Forest_inventory['PIC and SWDS'] + 
+                            CropGrass_inventory['DeltaC_grassland'] + 
+                            CropGrass_inventory['DeltaC_cropland'] + 
+                            CropGrass_inventory['landfill crops'] +
+                            River_inventory['aquatic burial'])
     
     # Creating the new DataFrame
     summary_df = pd.DataFrame({
         'FF and IPPU': Regional_fluxes['FF and IPPU'],
-        'Stockchange': combined_stockchange,
+        'DeltaC_total': combined_stockchange,
         'Crop Harvest (adjusted)': CropGrass_inventory['Harvest (adjusted)'],
         'Forest Harvest (adjusted)': Forest_inventory['Harvest (adjusted)'],
         'Respiration': combined_respiration,
@@ -213,7 +212,7 @@ if __name__ == '__main__':
         'Coastal carbon export': River_inventory['Coastal carbon export']
     })
 
-    FF_and_IPPU_inventory.to_csv('../Data_processed/Regional_CO2_Budget_Summary.csv')
+    summary_df.to_csv('../Data_processed/Regional_CO2_Budget_Summary.csv')
     
     #stophere
     

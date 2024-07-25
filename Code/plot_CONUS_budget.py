@@ -156,5 +156,5 @@ patch8 = mpatches.Patch(color=colors[8], label='Others')
 ax1.legend(handles=[patch0,patch1,patch2,patch3,patch4,patch5,patch6,patch7,patch8],loc='upper center', bbox_to_anchor=(0.5, 0.017),ncol=3,frameon=False,fontsize=11.5)
 plt.ylabel('Carbon flux (TgC year$^{-1}$)',fontsize=14)
 # Save figure
-plt.savefig('../Figures/CONUS_TopDown_LNLGIS_vs_bottomup_20240412.png', dpi=300)
+plt.savefig('../Figures/CONUS_TopDown_LNLGIS_vs_bottomup_20240528.png', dpi=300)
 

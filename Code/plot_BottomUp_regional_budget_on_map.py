@@ -115,35 +115,40 @@ def build_bar_CONUS(mapx, mapy, ax, width, xvals, rf, fcolors, ymin, ymax, ytick
 fig = plt.figure(1, figsize=(6.75*0.95,7.05*0.95), dpi=300)
 
 
+Forest_inventory = pd.read_csv('../Data_processed/Regional_CO2_Budget_Forests.csv')
+CropGrass_inventory = pd.read_csv('../Data_processed/Regional_CO2_Budget_CropGrass.csv')
+River_inventory = pd.read_csv('../Data_processed/Regional_CO2_Budget_River.csv')
+FF_and_IPPU_inventory = pd.read_csv('../Data_processed/Regional_CO2_Budget_Fossil.csv')
+summary = pd.read_csv('../Data_processed/Regional_CO2_Budget_Summary.csv')
 
-Regional_CO2_Budget = pd.read_csv('../Data_processed/Regional_CO2_Budget.csv')
+#Regional_CO2_Budget = pd.read_csv('../Data_processed/Regional_CO2_Budget.csv')
 
-CONUS_CO2_Budget = Regional_CO2_Budget.sum(axis=0)
+#CONUS_CO2_Budget = Regional_CO2_Budget.sum(axis=0)
 
-CONUS_CO2_Budget_total = ( CONUS_CO2_Budget['Forest inventory'] + CONUS_CO2_Budget['grassland stockchange'] +
-                           CONUS_CO2_Budget['cropland stockchange'] + CONUS_CO2_Budget['PIC and SWDS stockchange'] +
-                           CONUS_CO2_Budget['crop landfill stockchange'] + CONUS_CO2_Budget['Lake and River carbon burial'])
+#CONUS_CO2_Budget_total = ( CONUS_CO2_Budget['Forest inventory'] + CONUS_CO2_Budget['grassland stockchange'] +
+#                           CONUS_CO2_Budget['cropland stockchange'] + CONUS_CO2_Budget['PIC and SWDS stockchange'] +
+#                           CONUS_CO2_Budget['crop landfill stockchange'] + CONUS_CO2_Budget['Lake and River carbon burial'])
 
-print('------')
-print('Total')
-print(CONUS_CO2_Budget_total)
-print('Forest')
-print(CONUS_CO2_Budget['Forest inventory'])
-print('PIC and SWDS stockchange')
-print(CONUS_CO2_Budget['PIC and SWDS stockchange'])
-print('Lake and River carbon burial')
-print(CONUS_CO2_Budget['Lake and River carbon burial'])
-print('Agg + grass')
-print(CONUS_CO2_Budget['grassland stockchange']+CONUS_CO2_Budget['cropland stockchange'])
-print('------')
+#print('------')
+#print('Total')
+#print(CONUS_CO2_Budget_total)
+#print('Forest')
+#print(CONUS_CO2_Budget['Forest inventory'])
+#print('PIC and SWDS stockchange')
+#print(CONUS_CO2_Budget['PIC and SWDS stockchange'])
+#print('Lake and River carbon burial')
+#print(CONUS_CO2_Budget['Lake and River carbon burial'])
+#print('Agg + grass')
+#print(CONUS_CO2_Budget['grassland stockchange']+CONUS_CO2_Budget['cropland stockchange'])
+#print('------')
 
 Inv_cmap_test1 = cm.get_cmap('viridis')
 Inv_colorst = Inv_cmap_test1(np.linspace(0, 1.0, 7))
 
 
 ax1 = fig.add_axes([0.15,0.81,0.825,0.17])
-plt.fill_between([0,1],[0,0],[CONUS_CO2_Budget_total,CONUS_CO2_Budget_total],color='green', edgecolor='black',linewidth=0.5)
-plt.fill_between([1,2],[0,0],[CONUS_CO2_Budget['Forest inventory'],CONUS_CO2_Budget['Forest inventory']],color='green', edgecolor='black',linewidth=0.5,alpha=0.4)
+plt.fill_between([0,1],[0,0],[summary['Stockchange'],summary['Stockchange']],color='green', edgecolor='black',linewidth=0.5)
+plt.fill_between([1,2],[0,0],[Forest_inventory['stockchange'],Forest_inventory['stockchange']],color='green', edgecolor='black',linewidth=0.5,alpha=0.4)
 plt.fill_between([2,3],[0,0],[CONUS_CO2_Budget['grassland stockchange'],CONUS_CO2_Budget['grassland stockchange']],color='green', edgecolor='black',linewidth=0.5,alpha=0.4)
 plt.fill_between([3,4],[0,0],[CONUS_CO2_Budget['cropland stockchange'],CONUS_CO2_Budget['cropland stockchange']],color='green', edgecolor='black',linewidth=0.5,alpha=0.4)
 plt.fill_between([4,5],[0,0],[CONUS_CO2_Budget['PIC and SWDS stockchange'],CONUS_CO2_Budget['PIC and SWDS stockchange']],color='green', edgecolor='black',linewidth=0.5,alpha=0.4)
@@ -156,7 +161,7 @@ ax1.set_xticklabels(['$\mathrm{ \Delta C_{Total} }$',
                      '$\mathrm{ \Delta C_{Grassland} }$',
                      '$\mathrm{ \Delta C_{Cropland} }$',
                      'PIC and SWDS',
-                     'landfill crop',
+                     'landfill crops',
                      'aquatic burial'],rotation=20)
 plt.ylim([-350,25])
 plt.arrow(-0.575,-25,0,-300,width=0.0015,head_width=0.1,head_length=16,fc='k')

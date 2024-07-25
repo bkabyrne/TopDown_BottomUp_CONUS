@@ -72,7 +72,7 @@ if __name__ == '__main__':
     # Create xarray and save
     da_a = xr.DataArray(grassland_dC_region, dims=('year','region'), attrs={'units': 'TgC/yr'})
     da_b = xr.DataArray(cropland_dC_region, dims=('year','region'), attrs={'units': 'TgC/yr'})
-    reg_dataset = xr.Dataset({'grassland stockchange': da_a, 'cropland stockchange': da_b})
+    reg_dataset = xr.Dataset({'DeltaC_grassland': da_a, 'DeltaC_cropland': da_b})
     region_coords = ['Northwest','N Great Plains','Midwest','Southwest','S Great Plains','Southeast','Northeast']
     reg_dataset['region'] = region_coords
     year_coords = [2015,2016,2017,2018,2019,2020]

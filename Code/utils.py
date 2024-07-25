@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 from netCDF4 import Dataset
 from math import pi, cos, radians
+from bisect import bisect_left, bisect_right
+import xarray as xr
 
 def create_state_dataframe():
     """
@@ -132,3 +134,119 @@ def define_state_groupings():
 
     return Region
 
+def regrid_ARRAY(source, lat_size, lon_size, regrid, lat_regrid_size, lon_regrid_size):
+    '''
+    Regrids the Flux (Net Ecosystem Exchange) variable from the source grid to a new grid.
+
+    Parameters:
+    - source (xarray.Dataset): Input dataset with coordinates 'lat', 'lon' and variables 'Flux' and 'area'.
+    - lat_size (float): Original latitude grid size.
+    - lon_size (float): Original longitude grid size.
+    - regrid (xarray.Dataset): Output dataset with coordinates 'lat', 'lon' and variable 'area'.
+    - lat_regrid_size (float): New latitude grid size for the regrid.
+    - lon_regrid_size (float): New longitude grid size for the regrid.
+
+    Returns:
+    - regrid (xarray.Dataset): Output dataset with regridded 'Flux' added.
+    '''
+
+    # Ensure latitude and longitude values are sorted in ascending order
+    if np.all(np.diff(source['lat'].values) < 0):
+        source = source.sel(lat=source.lat[::-1])
+    elif not np.all(np.diff(source['lat'].values) > 0):
+        raise ValueError("Source latitudes must be monotonic")
+
+    if np.all(np.diff(source['lon'].values) < 0):
+        source = source.sel(lon=source.lon[::-1])
+    elif not np.all(np.diff(source['lon'].values) > 0):
+        raise ValueError("Source longitudes must be monotonic")
+
+    # Calculate the edges of the latitude and longitude values for the source grid
+    lat_values_edges = np.append(source['lat'].values - lat_size / 2., source['lat'].values[-1] + lat_size / 2.)
+    lon_values_edges = np.append(source['lon'].values - lon_size / 2., source['lon'].values[-1] + lon_size / 2.)
+
+    # Initialize the output array
+    ARRAY_out = np.zeros((np.size(regrid['lat']), np.size(regrid['lon'])))
+
+    # Calculate the midpoints and edges for the regrid
+    regrid_lat_midpoints = regrid['lat'].values
+    regrid_lon_midpoints = regrid['lon'].values
+    out_top_grid = regrid_lat_midpoints + lat_regrid_size / 2.
+    out_bottom_grid = regrid_lat_midpoints - lat_regrid_size / 2.
+    out_left_grid = regrid_lon_midpoints - lon_regrid_size / 2.
+    out_right_grid = regrid_lon_midpoints + lon_regrid_size / 2.
+
+    # Check if regrid midpoints are within the valid range of the source grid
+    if (np.any(out_bottom_grid < lat_values_edges[0]) or np.any(out_top_grid > lat_values_edges[-1]) or
+        np.any(out_left_grid < lon_values_edges[0]) or np.any(out_right_grid > lon_values_edges[-1])):
+        print("Warning: Some regrid midpoints are out of the valid range of source latitudes and longitudes")
+        # Adjust out-of-range midpoints to be within the valid range
+        out_bottom_grid = np.clip(out_bottom_grid, lat_values_edges[0], lat_values_edges[-1])
+        out_top_grid = np.clip(out_top_grid, lat_values_edges[0], lat_values_edges[-1])
+        out_left_grid = np.clip(out_left_grid, lon_values_edges[0], lon_values_edges[-1])
+        out_right_grid = np.clip(out_right_grid, lon_values_edges[0], lon_values_edges[-1])
+
+    # Loop through each regrid cell to calculate the regridded Flux
+    for ii in range(len(regrid_lat_midpoints)):
+        for jj in range(len(regrid_lon_midpoints)):
+            lat_start = bisect_left(lat_values_edges, out_bottom_grid[ii])
+            lat_end = bisect_right(lat_values_edges, out_top_grid[ii])
+            lon_start = bisect_left(lon_values_edges, out_left_grid[jj])
+            lon_end = bisect_right(lon_values_edges, out_right_grid[jj])
+
+            # Adjust indices if they are out of bounds
+            if lat_start == lat_end:
+                lat_start = max(0, lat_start - 1)
+                lat_end = min(len(lat_values_edges), lat_end + 1)
+            if lon_start == lon_end:
+                lon_start = max(0, lon_start - 1)
+                lon_end = min(len(lon_values_edges), lon_end + 1)
+
+            Temp_total_flux = 0.
+            Temp_total_area = 0.
+            for iit in range(lat_start - 1, lat_end):
+                for jjt in range(lon_start - 1, lon_end):
+                    if 0 <= iit < np.size(source['lat'].values) and 0 <= jjt < np.size(source['lon'].values):
+                        in_lat_grid_center = source['lat'].values[iit]
+                        in_lon_grid_center = source['lon'].values[jjt]
+                        in_top_grid = in_lat_grid_center + lat_size / 2.
+                        in_bottom_grid = in_lat_grid_center - lat_size / 2.
+                        in_left_grid = in_lon_grid_center - lon_size / 2.
+                        in_right_grid = in_lon_grid_center + lon_size / 2.
+
+                        # Calculate the overlapping box area between source and regrid cells
+                        bottom_box = np.max([in_bottom_grid, out_bottom_grid[ii]])
+                        top_box = np.min([in_top_grid, out_top_grid[ii]])
+                        left_box = np.max([in_left_grid, out_left_grid[jj]])
+                        right_box = np.min([in_right_grid, out_right_grid[jj]])
+
+                        rough_area_small_box = (top_box - bottom_box) * (right_box - left_box)
+                        rough_source_area = (in_top_grid - in_bottom_grid) * (in_right_grid - in_left_grid)
+
+                        if rough_source_area == 0:
+                            print(f"Warning: rough_source_area is zero at source indices ({iit}, {jjt})")
+
+                        # Accumulate the total flux and area for the regrid cell
+                        Temp_total_flux += source['Flux'].values[iit, jjt] * source['area'].values[iit, jjt] * (rough_area_small_box / rough_source_area)
+                        Temp_total_area += source['area'].values[iit, jjt] * (rough_area_small_box / rough_source_area)
+
+            # Calculate the regridded Flux for the current regrid cell
+            if Temp_total_area > 0:
+                ARRAY_out[ii, jj] = Temp_total_flux / Temp_total_area
+            else:
+                print(f"Warning: Temp_total_area is zero for regrid cell ({ii}, {jj})")
+
+    # Print total Flux values for source and regridded data for verification
+    print('=== Check totals ===')
+    total_source_Flux = np.sum(source['Flux'].values * source['area'].values) * 1e-12
+    total_regrid_Flux = np.sum(ARRAY_out * regrid['area'].values) * 1e-12
+    ratio = total_source_Flux / total_regrid_Flux
+
+    print(f"Total source Flux: {total_source_Flux} TgC")
+    print(f"Total regridded ARRAY_out * regrid['area']: {total_regrid_Flux} TgC")
+    print(f"Ratio: {ratio}")
+
+    # Add the regridded Flux to the regrid dataset
+    regrid['Flux'] = (('lat', 'lon'), ARRAY_out)
+
+    return regrid
