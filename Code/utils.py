@@ -83,6 +83,7 @@ def create_state_dataframe():
 
 # ==================
 
+
 def Regional_mask(resolution):
 
     if resolution == '005':
@@ -97,7 +98,8 @@ def Regional_mask(resolution):
     else:
         raise ValueError("Resolution not available in Regional_mask")
 
-    file_in='/u/bbyrne1/Rasterized_US_states.nc'
+    print()
+    file_in='/home/bbyrne/TopDown_BottomUp_CONUS/Data_input/Rasterized_US_states.nc'
     f=Dataset(file_in,mode='r')
     lat_res = f.variables['lat'+resolution][:]
     lon_res = f.variables['lon'+resolution][:]

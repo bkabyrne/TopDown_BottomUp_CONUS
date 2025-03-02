@@ -25,7 +25,7 @@ def read_MIP_net_flux(models,experiment):
 
     Net_Flux = np.zeros((len(models),6,180,360))
     
-    nc_file = '/u/bbyrne1/python_codes/GST_v10MIP/MIPv10_'+experiment+'_ens.nc'
+    nc_file = '../Data_processed/MIPv10_'+experiment+'_ens.nc'
     f=Dataset(nc_file,mode='r')
     lon = f.variables['lon'][:]
     lat = f.variables['lat'][:]

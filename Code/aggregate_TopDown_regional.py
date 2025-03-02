@@ -1,6 +1,7 @@
 # --- import modules ---   
 import numpy as np
 import xarray as xr
+import pandas as pd
 from netCDF4 import Dataset
 import utils
 
@@ -19,7 +20,7 @@ def read_MIP_net_flux(models,experiment):
 
     Net_Flux = np.zeros((len(models),6,180,360))
     
-    nc_file = '/u/bbyrne1/python_codes/GST_v10MIP/MIPv10_'+experiment+'_ens.nc'
+    nc_file = '../Data_input/MIPv10_'+experiment+'_ens.nc'
     f=Dataset(nc_file,mode='r')
     lon = f.variables['lon'][:]
     lat = f.variables['lat'][:]
@@ -67,7 +68,7 @@ def calculate_regional_fluxes(Net_Flux,USA_Regions_1x1,area_1x1):
     Region_net_meanYr_percentile_25 = np.percentile(Region_net_all_meanYr,25, axis=0)
     Region_net_meanYr_std = np.abs(Region_net_meanYr_percentile_75 - Region_net_meanYr_percentile_25)/1.35
 
-x    Region_median_std = np.concatenate( ( np.expand_dims(Region_net_percentile_50,axis=0),
+    Region_median_std = np.concatenate( ( np.expand_dims(Region_net_percentile_50,axis=0),
                                           np.expand_dims(Region_net_std,axis=0) ),
                                         axis=0)
     
@@ -99,10 +100,30 @@ if __name__ == '__main__':
     MIP_regional_data_year['region'] = region_coords
     MIP_regional_data_year['year'] = time_coords
     MIP_regional_data_year['stat'] = ['median','std']
-    MIP_regional_data_year.to_netcdf('../Data_processed/Regional_OCO2_MIP_year.nc')
+    #MIP_regional_data_year.to_netcdf('../Data_processed/Regional_OCO2_MIP_year.nc')
 
     MIP_regional_data = xr.Dataset(all_exp_dict)
     MIP_regional_data['region'] = region_coords
     MIP_regional_data['stat'] = ['median','std']
-    MIP_regional_data.to_netcdf('../Data_processed/Regional_OCO2_MIP_2015to2020avg.nc')
+    #MIP_regional_data.to_netcdf('../Data_processed/Regional_OCO2_MIP_2015to2020avg.nc')
+    
+    # Initialize an empty list to store the column names and values
+    columns = ['region']
+    values = []
+    # Iterate through variables (excluding stat and region)
+    for variable in MIP_regional_data.data_vars:
+        for stat in MIP_regional_data['stat'].values:
+            # Create the column name by combining variable and stat
+            column_name = f"{variable} {stat}"
+            # Flatten the array and append it to the values list
+            values.append(MIP_regional_data[variable].sel(stat=stat).values)
+            # Add the column name to the list of columns
+            columns.append(column_name)
+    # Stack the values into a 2D array and transpose
+    values = list(zip(*values))  # Transpose so that each row is a region with variable-stat values
 
+    # Create the DataFrame and include the region column
+    df = pd.DataFrame(values, columns=columns[1:], index=MIP_regional_data['region'].values)
+    df.insert(0, 'region', MIP_regional_data['region'].values)  # Insert 'region' as the first column
+
+    df.to_csv('../Data_processed/Regional_TopDown_NCE.csv', index=False)

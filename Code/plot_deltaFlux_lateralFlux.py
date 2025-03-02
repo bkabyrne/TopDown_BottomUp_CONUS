@@ -17,47 +17,34 @@ output:
 
 '''
 
-Regional_CO2_Budget = pd.read_csv('../Data_processed/Regional_CO2_Budget.csv')
+Regional_CO2_Budget = pd.read_csv('../Data_processed/Regional_CO2_Budget_Summary.csv')
 
-Regional_CO2_Budget['Bottom-up NCE'] = (Regional_CO2_Budget['Biofuel wood'] +
-                                        Regional_CO2_Budget['Biofuel ethanol'] +
-                                        Regional_CO2_Budget['Biofuel biodiesal'] +
-                                        Regional_CO2_Budget['Incineration'] +
-                                        Regional_CO2_Budget['FF and IPPU'] +
-                                        Regional_CO2_Budget['Crop yield'] +
-                                        Regional_CO2_Budget['Livestock Respiration'] +
-                                        Regional_CO2_Budget['Human Respiration'] +
-                                        Regional_CO2_Budget['Forest Harvest'] +
-                                        Regional_CO2_Budget['Forest inventory'] +
-                                        Regional_CO2_Budget['grassland stockchange'] +
-                                        Regional_CO2_Budget['cropland stockchange'] +
-                                        Regional_CO2_Budget['residual wood'] +
-                                        Regional_CO2_Budget['PIC and SWDS stockchange'] +
-                                        Regional_CO2_Budget['wood trade'] +
-                                        Regional_CO2_Budget['residual crop'] +
-                                        Regional_CO2_Budget['crop landfill stockchange'] +
-                                        Regional_CO2_Budget['crop trade'] +
-                                        Regional_CO2_Budget['Lake and River emissions'] +
-                                        Regional_CO2_Budget['Lake and River carbon burial'] +
+
+Regional_CO2_Budget['Bottom-up NCE'] = (Regional_CO2_Budget['FF and IPPU'] + 
+                                        Regional_CO2_Budget['DeltaC_total'] + 
+                                        Regional_CO2_Budget['Crop Harvest (adjusted)'] + 
+                                        Regional_CO2_Budget['Forest Harvest (adjusted)'] + 
+                                        Regional_CO2_Budget['Respiration'] + 
+                                        Regional_CO2_Budget['Biofuel'] + 
+                                        Regional_CO2_Budget['Trade'] + 
+                                        Regional_CO2_Budget['Residual'] + 
                                         Regional_CO2_Budget['Coastal carbon export'] )
 
-Regional_CO2_Budget['net_lateral_flux'] = ( Regional_CO2_Budget['Biofuel wood'] +
-                                            Regional_CO2_Budget['Biofuel ethanol'] +
-                                            Regional_CO2_Budget['Biofuel biodiesal'] +
-                                            Regional_CO2_Budget['Incineration'] +
-                                            Regional_CO2_Budget['Crop yield'] +
-                                            Regional_CO2_Budget['Livestock Respiration'] +
-                                            Regional_CO2_Budget['Human Respiration'] +
-                                            Regional_CO2_Budget['Forest Harvest'] +
-                                            Regional_CO2_Budget['residual wood'] +
-                                            Regional_CO2_Budget['PIC and SWDS stockchange'] +
-                                            Regional_CO2_Budget['wood trade'] +
-                                            Regional_CO2_Budget['residual crop'] +
-                                            Regional_CO2_Budget['crop landfill stockchange'] +
-                                            Regional_CO2_Budget['crop trade'] +
-                                            Regional_CO2_Budget['Lake and River emissions'] +
-                                            Regional_CO2_Budget['Lake and River carbon burial'] +
+Regional_CO2_Budget['net_lateral_flux'] = ( Regional_CO2_Budget['Biofuel'] +
+                                            Regional_CO2_Budget['Crop Harvest (adjusted)'] +
+                                            Regional_CO2_Budget['Forest Harvest (adjusted)'] +
+                                            Regional_CO2_Budget['Respiration'] +
+                                            Regional_CO2_Budget['Biofuel'] +
+                                            Regional_CO2_Budget['Trade'] +
+                                            Regional_CO2_Budget['Residual'] +
                                             Regional_CO2_Budget['Coastal carbon export'] )
+
+Regional_TopDown_NCE = pd.read_csv('../Data_processed/Regional_TopDown_NCE.csv')
+#Regional_TopDown_NCE.set_index('region', inplace=True)
+Regional_CO2_Budget['Prior median'] = Regional_TopDown_NCE['Prior median'].copy()
+Regional_CO2_Budget['Prior std'] = Regional_TopDown_NCE['Prior std'].copy()
+Regional_CO2_Budget['LNLGIS median'] = Regional_TopDown_NCE['LNLGIS median'].copy()
+Regional_CO2_Budget['LNLGIS std'] = Regional_TopDown_NCE['LNLGIS std'].copy()
 
 
 change_Flux = Regional_CO2_Budget['LNLGIS median'].values - Regional_CO2_Budget['Prior median'].values
